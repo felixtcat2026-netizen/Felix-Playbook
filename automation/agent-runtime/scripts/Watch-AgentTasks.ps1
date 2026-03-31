@@ -7,12 +7,28 @@ $modulePath = Join-Path (Split-Path -Parent $PSScriptRoot) "runtime\AgentRuntime
 Import-Module $modulePath -Force
 
 $results = @()
-$staleCutoff = (Get-Date).ToUniversalTime().AddMinutes(-1 * $StaleMinutes)
 $config = Get-AgentRuntimeConfig
 
 foreach ($dir in Get-RecentTasks) {
   $taskId = $dir.Name
   $manifest = Get-TaskManifest -TaskId $taskId
+  $summary = Get-TaskSummary -TaskId $taskId
+
+  $manifest = Update-TaskManifest -TaskId $taskId -Update {
+    param($m)
+    $timestamp = Get-Timestamp
+    if ($m.PSObject.Properties['lastHealthCheckAt']) { $m.lastHealthCheckAt = $timestamp } else { $m | Add-Member -NotePropertyName lastHealthCheckAt -NotePropertyValue $timestamp -Force }
+    if ($m.PSObject.Properties['liveVerified']) { $m.liveVerified = $summary.liveVerified } else { $m | Add-Member -NotePropertyName liveVerified -NotePropertyValue $summary.liveVerified -Force }
+    if ($m.PSObject.Properties['runtimeState']) { $m.runtimeState = $summary.runtimeState } else { $m | Add-Member -NotePropertyName runtimeState -NotePropertyValue $summary.runtimeState -Force }
+    if ($m.PSObject.Properties['hasRecentActivity']) { $m.hasRecentActivity = $summary.hasRecentActivity } else { $m | Add-Member -NotePropertyName hasRecentActivity -NotePropertyValue $summary.hasRecentActivity -Force }
+    if ($m.PSObject.Properties['hasArtifactProgress']) { $m.hasArtifactProgress = $summary.hasArtifactProgress } else { $m | Add-Member -NotePropertyName hasArtifactProgress -NotePropertyValue $summary.hasArtifactProgress -Force }
+    if ($m.PSObject.Properties['stallReason']) { $m.stallReason = $summary.stallReason } else { $m | Add-Member -NotePropertyName stallReason -NotePropertyValue $summary.stallReason -Force }
+    if ($m.PSObject.Properties['idleMinutes']) { $m.idleMinutes = $summary.idleMinutes } else { $m | Add-Member -NotePropertyName idleMinutes -NotePropertyValue $summary.idleMinutes -Force }
+    if ([string]$m.status -eq 'running' -and $summary.runtimeState -eq 'stalled') {
+      $m.status = 'stalled'
+    }
+  }
+
   $needsRestart = $false
   $reason = ""
   $currentStatus = [string]$manifest.status
@@ -29,24 +45,24 @@ foreach ($dir in Get-RecentTasks) {
       $reason = "status:retrying"
       break
     }
+    "stalled" {
+      $needsRestart = $true
+      $reason = if ($summary.stallReason) { $summary.stallReason } else { 'status:stalled' }
+      break
+    }
     "running" {
-      if ($manifest.backend -eq "tmux") {
-        if (-not (Test-TmuxSessionAlive -SessionName $manifest.sessionName)) {
+      switch ($summary.runtimeState) {
+        "stalled" {
           $needsRestart = $true
-          $reason = "missing-tmux-session"
+          $reason = if ($summary.stallReason) { $summary.stallReason } else { "stalled" }
+          break
         }
-      } else {
-        if (-not (Test-DetachedProcessAlive -ProcessId $manifest.processId)) {
-          $needsRestart = $true
-          $reason = "missing-process"
-        }
-      }
-
-      if (-not $needsRestart) {
-        $lastActivity = Get-TaskLastActivity -TaskId $taskId
-        if ($lastActivity -and $lastActivity -lt $staleCutoff) {
-          $needsRestart = $true
-          $reason = "stale-activity"
+        "running-idle" {
+          if (-not $summary.hasArtifactProgress -and $summary.idleMinutes -ne $null -and $summary.idleMinutes -ge $StaleMinutes) {
+            $needsRestart = $true
+            $reason = if ($summary.stallReason) { $summary.stallReason } else { "idle-no-artifact-progress" }
+          }
+          break
         }
       }
 
@@ -75,6 +91,9 @@ foreach ($dir in Get-RecentTasks) {
         $m.sessionName = $tmux.SessionName
         $m.processId = $null
         $m.status = 'running'
+        $m.runtimeState = 'running-live'
+        $m.liveVerified = $true
+        $m.stallReason = $null
         if ($m.PSObject.Properties.Name -notcontains 'recoveredAt') {
           $m | Add-Member -NotePropertyName recoveredAt -NotePropertyValue (Get-Timestamp) -Force
         } else {
@@ -99,6 +118,9 @@ foreach ($dir in Get-RecentTasks) {
         $m.processId = $proc.Id
         $m.sessionName = $null
         $m.status = 'running'
+        $m.runtimeState = 'running-live'
+        $m.liveVerified = $true
+        $m.stallReason = $null
         if ($m.PSObject.Properties.Name -notcontains 'recoveredAt') {
           $m | Add-Member -NotePropertyName recoveredAt -NotePropertyValue (Get-Timestamp) -Force
         } else {
@@ -138,6 +160,9 @@ foreach ($dir in Get-RecentTasks) {
           $m.sessionName = $tmux.SessionName
           $m.processId = $null
           $m.status = "running"
+          $m.runtimeState = 'running-live'
+          $m.liveVerified = $true
+          $m.stallReason = $null
           if ($m.PSObject.Properties.Name -notcontains 'recoveredAt') {
             $m | Add-Member -NotePropertyName recoveredAt -NotePropertyValue (Get-Timestamp) -Force
           } else {
@@ -168,6 +193,9 @@ foreach ($dir in Get-RecentTasks) {
         $m.processId = $proc.Id
         $m.sessionName = $null
         $m.status = "running"
+        $m.runtimeState = 'running-live'
+        $m.liveVerified = $true
+        $m.stallReason = $null
         if ($m.PSObject.Properties.Name -notcontains 'recoveredAt') {
           $m | Add-Member -NotePropertyName recoveredAt -NotePropertyValue (Get-Timestamp) -Force
         } else {
@@ -193,17 +221,20 @@ foreach ($dir in Get-RecentTasks) {
     & (Join-Path $PSScriptRoot 'Send-AgentOpsNotice.ps1') -TaskId $taskId -Event 'needs-attention' -Reason $reason -Extra 'Watcher detected issue but recover was not requested' | Out-Null
   }
 
-  $summary = Get-TaskSummary -TaskId $taskId
   $results += [pscustomobject]@{
     taskId = $summary.taskId
-    action = if ($needsRestart) { "needs-restart" } else { "ok" }
+    action = if ($needsRestart) { 'needs-restart' } elseif ($summary.runtimeState -eq 'running-idle') { 'idle' } else { 'ok' }
     backend = $summary.backend
     sessionName = $summary.sessionName
     pid = $summary.processId
-    reason = $reason
-    status = $summary.status
+    reason = if ($reason) { $reason } else { $summary.stallReason }
+    status = $manifest.status
+    runtimeState = $summary.runtimeState
+    liveVerified = $summary.liveVerified
+    hasArtifactProgress = $summary.hasArtifactProgress
     completedRequired = $summary.completedRequired
     totalRequired = $summary.totalRequired
+    idleMinutes = $summary.idleMinutes
     lastActivityUtc = $summary.lastActivityUtc
   }
 }

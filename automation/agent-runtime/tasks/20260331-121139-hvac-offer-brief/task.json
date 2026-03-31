@@ -2,27 +2,40 @@
     "id":  "20260331-121139-hvac-offer-brief",
     "title":  "hvac offer brief",
     "createdAt":  "2026-03-31T12:11:39-05:00",
-    "updatedAt":  "2026-03-31T12:12:21-05:00",
-    "recoveredAt":  null,
+    "updatedAt":  "2026-03-31T15:35:32-05:00",
+    "recoveredAt":  "2026-03-31T15:32:34-05:00",
     "lastChecklistUpdateAt":  null,
-    "lastAttemptAt":  null,
+    "lastAttemptAt":  "2026-03-31T15:32:52-05:00",
     "completedAt":  null,
-    "failedAt":  null,
-    "lastValidation":  null,
+    "failedAt":  "2026-03-31T15:33:07-05:00",
+    "lastValidation":  {
+                           "taskId":  "20260331-121139-hvac-offer-brief",
+                           "valid":  false,
+                           "missingChecklist":  [
+                                                    "PRD reviewed",
+                                                    "Implementation complete",
+                                                    "Validation complete",
+                                                    "completion.md written"
+                                                ],
+                           "missingFiles":  [
+
+                                            ],
+                           "completionPath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260331-121139-hvac-offer-brief\\completion.md"
+                       },
     "workdir":  "C:\\labs\\Felix Playbook",
-    "status":  "running",
-    "backend":  "tmux",
+    "status":  "failed",
+    "backend":  "detached-pwsh",
     "model":  "gpt-5.4",
     "maxAttempts":  3,
-    "attempt":  0,
+    "attempt":  3,
     "summary":  "Create a concise HVAC-specific offer brief for FollowUp Fuel and write the result into automation\\\\agent-runtime\\\\tasks\\\\\u003ctask-id\u003e\\\\completion.md",
     "prdPath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260331-121139-hvac-offer-brief\\prd.md",
     "checklistPath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260331-121139-hvac-offer-brief\\checklist.json",
     "completionPath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260331-121139-hvac-offer-brief\\completion.md",
     "taskDir":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260331-121139-hvac-offer-brief",
     "logDir":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260331-121139-hvac-offer-brief\\logs",
-    "processId":  null,
-    "sessionName":  "felix-20260331-121139-hvac-offer-brief",
+    "processId":  25764,
+    "sessionName":  null,
     "lastMessagePath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260331-121139-hvac-offer-brief\\logs\\last-message.txt",
     "completionHooks":  [
                             "log",
@@ -32,5 +45,12 @@
                        "requiredFiles":  [
 
                                          ]
-                   }
+                   },
+    "lastHealthCheckAt":  "2026-03-31T15:35:32-05:00",
+    "liveVerified":  false,
+    "runtimeState":  "failed",
+    "hasRecentActivity":  true,
+    "hasArtifactProgress":  false,
+    "stallReason":  null,
+    "idleMinutes":  2.4
 }

@@ -9,7 +9,8 @@ function Ensure-AgentRuntimeLayout {
   @(
     (Join-Path $root "tasks"),
     (Join-Path $root "state"),
-    (Join-Path $root "logs")
+    (Join-Path $root "logs"),
+    (Join-Path $root "archive")
   ) | ForEach-Object {
     if (-not (Test-Path -LiteralPath $_)) {
       New-Item -ItemType Directory -Path $_ -Force | Out-Null
@@ -309,12 +310,133 @@ function Get-TaskLastActivity {
   return ($candidates | Sort-Object -Descending | Select-Object -First 1)
 }
 
+function Get-TaskOutputSnapshot {
+  param([Parameter(Mandatory = $true)][string]$TaskId)
+
+  $manifest = Get-TaskManifest -TaskId $TaskId
+  $result = [ordered]@{
+    completionHasContent = $false
+    completionPreview = $null
+    lastCompletionWriteUtc = $null
+    checklistHasEvidence = $false
+    checklistDoneCount = 0
+    checklistEvidenceCount = 0
+    lastChecklistWriteUtc = $null
+    lastLogWriteUtc = $null
+    logFileCount = 0
+  }
+
+  if (Test-Path -LiteralPath $manifest.completionPath) {
+    $completionInfo = Get-Item -LiteralPath $manifest.completionPath -ErrorAction SilentlyContinue
+    if ($completionInfo) {
+      $result.lastCompletionWriteUtc = $completionInfo.LastWriteTimeUtc.ToString('o')
+    }
+    $completionContent = (Get-Content -LiteralPath $manifest.completionPath -Raw -ErrorAction SilentlyContinue)
+    if (-not [string]::IsNullOrWhiteSpace($completionContent)) {
+      $trimmed = $completionContent.Trim()
+      if ($trimmed -and $trimmed -notmatch '^# Completion\s+Pending\.?$' -and $trimmed -ne 'Pending.') {
+        $result.completionHasContent = $true
+        $result.completionPreview = ($trimmed -replace '\s+', ' ').Substring(0, [Math]::Min(160, ($trimmed -replace '\s+', ' ').Length))
+      }
+    }
+  }
+
+  if (Test-Path -LiteralPath $manifest.checklistPath) {
+    $checklistInfo = Get-Item -LiteralPath $manifest.checklistPath -ErrorAction SilentlyContinue
+    if ($checklistInfo) {
+      $result.lastChecklistWriteUtc = $checklistInfo.LastWriteTimeUtc.ToString('o')
+    }
+    $items = Read-JsonFile -Path $manifest.checklistPath
+    $done = @($items | Where-Object { $_.status -eq 'done' })
+    $withEvidence = @($items | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_.evidence) })
+    $result.checklistDoneCount = $done.Count
+    $result.checklistEvidenceCount = $withEvidence.Count
+    $result.checklistHasEvidence = ($withEvidence.Count -gt 0)
+  }
+
+  if (Test-Path -LiteralPath $manifest.logDir) {
+    $logs = Get-ChildItem -LiteralPath $manifest.logDir -File -ErrorAction SilentlyContinue
+    $result.logFileCount = @($logs).Count
+    $recentLog = $logs | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
+    if ($recentLog) {
+      $result.lastLogWriteUtc = $recentLog.LastWriteTimeUtc.ToString('o')
+    }
+  }
+
+  [pscustomobject]$result
+}
+
+function Get-TaskHealth {
+  param(
+    [Parameter(Mandatory = $true)][string]$TaskId,
+    [int]$IdleMinutes = 15
+  )
+
+  $manifest = Get-TaskManifest -TaskId $TaskId
+  $checklist = Get-ChecklistSummary -TaskId $TaskId
+  $lastActivity = Get-TaskLastActivity -TaskId $TaskId
+  $snapshot = Get-TaskOutputSnapshot -TaskId $TaskId
+  $nowUtc = (Get-Date).ToUniversalTime()
+  $idleCutoff = $nowUtc.AddMinutes(-1 * $IdleMinutes)
+
+  $liveVerified = $false
+  if ($manifest.backend -eq 'tmux') {
+    $liveVerified = Test-TmuxSessionAlive -SessionName $manifest.sessionName
+  } elseif ($manifest.backend -eq 'detached-pwsh') {
+    $liveVerified = Test-DetachedProcessAlive -ProcessId $manifest.processId
+  }
+
+  $hasArtifactProgress = ($snapshot.completionHasContent -or $snapshot.checklistHasEvidence -or $checklist.completedRequired -gt 0)
+  $hasRecentActivity = ($lastActivity -and $lastActivity -ge $idleCutoff)
+
+  $runtimeState = 'unknown'
+  switch ([string]$manifest.status) {
+    'completed' { $runtimeState = 'completed' }
+    'failed' { $runtimeState = 'failed' }
+    default {
+      if (-not $liveVerified) {
+        $runtimeState = 'stalled'
+      } elseif ($hasRecentActivity) {
+        $runtimeState = 'running-live'
+      } elseif ($hasArtifactProgress) {
+        $runtimeState = 'running-idle'
+      } else {
+        $runtimeState = 'running-idle'
+      }
+    }
+  }
+
+  $stallReason = $null
+  if ($runtimeState -eq 'stalled') {
+    if ($manifest.backend -eq 'tmux') {
+      $stallReason = 'missing-tmux-session'
+    } elseif ($manifest.backend -eq 'detached-pwsh') {
+      $stallReason = 'missing-process'
+    } else {
+      $stallReason = 'not-live'
+    }
+  } elseif ($runtimeState -eq 'running-idle' -and -not $hasRecentActivity) {
+    $stallReason = 'idle-no-recent-output'
+  }
+
+  [pscustomobject]@{
+    liveVerified = $liveVerified
+    runtimeState = $runtimeState
+    hasRecentActivity = $hasRecentActivity
+    hasArtifactProgress = $hasArtifactProgress
+    stallReason = $stallReason
+    output = $snapshot
+    lastActivityUtc = if ($lastActivity) { $lastActivity.ToString('o') } else { $null }
+    idleMinutes = if ($lastActivity) { [Math]::Round(($nowUtc - $lastActivity).TotalMinutes, 1) } else { $null }
+  }
+}
+
 function Get-TaskSummary {
   param([Parameter(Mandatory = $true)][string]$TaskId)
 
   $manifest = Get-TaskManifest -TaskId $TaskId
   $checklist = Get-ChecklistSummary -TaskId $TaskId
-  $lastActivity = Get-TaskLastActivity -TaskId $TaskId
+  $health = Get-TaskHealth -TaskId $TaskId
 
   [pscustomobject]@{
     taskId = $manifest.id
@@ -329,13 +451,20 @@ function Get-TaskSummary {
     processId = $manifest.processId
     sessionName = $manifest.sessionName
     updatedAt = $manifest.updatedAt
-    lastActivityUtc = if ($lastActivity) { $lastActivity.ToString("o") } else { $null }
+    lastActivityUtc = $health.lastActivityUtc
     workdir = $manifest.workdir
+    liveVerified = $health.liveVerified
+    runtimeState = $health.runtimeState
+    hasRecentActivity = $health.hasRecentActivity
+    hasArtifactProgress = $health.hasArtifactProgress
+    stallReason = $health.stallReason
+    idleMinutes = $health.idleMinutes
+    completionHasContent = $health.output.completionHasContent
+    completionPreview = $health.output.completionPreview
+    checklistHasEvidence = $health.output.checklistHasEvidence
+    checklistEvidenceCount = $health.output.checklistEvidenceCount
+    lastLogWriteUtc = $health.output.lastLogWriteUtc
   }
 }
 
 Export-ModuleMember -Function *-*
-
-
-
-
