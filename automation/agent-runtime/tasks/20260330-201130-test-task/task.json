@@ -1,0 +1,32 @@
+{
+    "id":  "20260330-201130-test-task",
+    "title":  "Test task",
+    "createdAt":  "2026-03-30T20:11:30-05:00",
+    "updatedAt":  "2026-03-30T20:20:32-05:00",
+    "recoveredAt":  "2026-03-30T20:20:32-05:00",
+    "lastChecklistUpdateAt":  null,
+    "workdir":  "C:\\labs\\Felix Playbook",
+    "status":  "running",
+    "backend":  "detached-pwsh",
+    "model":  "gpt-5.4",
+    "maxAttempts":  3,
+    "attempt":  0,
+    "summary":  "Verify runtime works",
+    "prdPath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260330-201130-test-task\\prd.md",
+    "checklistPath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260330-201130-test-task\\checklist.json",
+    "completionPath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260330-201130-test-task\\completion.md",
+    "taskDir":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260330-201130-test-task",
+    "logDir":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260330-201130-test-task\\logs",
+    "processId":  15840,
+    "sessionName":  null,
+    "lastMessagePath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260330-201130-test-task\\logs\\last-message.txt",
+    "completionHooks":  [
+                            "log",
+                            "telegram"
+                        ],
+    "validation":  {
+                       "requiredFiles":  [
+
+                                         ]
+                   }
+}
