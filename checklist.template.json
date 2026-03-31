@@ -1,0 +1,30 @@
+[
+  {
+    "id": "prd-reviewed",
+    "title": "PRD reviewed",
+    "required": true,
+    "status": "pending",
+    "evidence": ""
+  },
+  {
+    "id": "implementation-complete",
+    "title": "Implementation complete",
+    "required": true,
+    "status": "pending",
+    "evidence": ""
+  },
+  {
+    "id": "validation-complete",
+    "title": "Validation complete",
+    "required": true,
+    "status": "pending",
+    "evidence": ""
+  },
+  {
+    "id": "completion-summary-written",
+    "title": "completion.md written",
+    "required": true,
+    "status": "pending",
+    "evidence": ""
+  }
+]

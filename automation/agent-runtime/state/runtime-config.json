@@ -1,0 +1,12 @@
+{
+  "preferredBackend": "tmux",
+  "fallbackBackend": "detached-pwsh",
+  "defaultModel": "gpt-5.4",
+  "defaultMaxAttempts": 3,
+  "staleMinutes": 15,
+  "defaultTopicChatId": "-1003834402915",
+  "defaultTopicId": 86,
+  "notifyOnCompletion": true,
+  "notifyTransport": "telegram",
+  "customCompletionHook": ""
+}

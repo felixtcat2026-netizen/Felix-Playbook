@@ -1,0 +1,31 @@
+{
+    "id":  "20260330-190125-sanity-test-task-3",
+    "title":  "Sanity Test Task 3",
+    "createdAt":  "2026-03-30T19:01:25-05:00",
+    "updatedAt":  "2026-03-30T19:14:03-05:00",
+    "workdir":  "C:\\labs\\Felix Playbook",
+    "status":  "running",
+    "backend":  "detached-pwsh",
+    "model":  "gpt-5.4",
+    "maxAttempts":  3,
+    "attempt":  0,
+    "summary":  "Verify the new agent runtime scaffolding works.",
+    "prdPath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260330-190125-sanity-test-task-3\\prd.md",
+    "checklistPath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260330-190125-sanity-test-task-3\\checklist.json",
+    "completionPath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260330-190125-sanity-test-task-3\\completion.md",
+    "taskDir":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260330-190125-sanity-test-task-3",
+    "logDir":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260330-190125-sanity-test-task-3\\logs",
+    "processId":  21016,
+    "sessionName":  null,
+    "lastMessagePath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260330-190125-sanity-test-task-3\\logs\\last-message.txt",
+    "completionHooks":  [
+                            "log",
+                            "telegram"
+                        ],
+    "validation":  {
+                       "requiredFiles":  [
+
+                                         ]
+                   },
+    "recoveredAt":  "2026-03-30T19:14:03-05:00"
+}
