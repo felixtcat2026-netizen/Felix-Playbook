@@ -1,0 +1,37 @@
+{
+    "id":  "20260331-115046-promotion-smoke-test",
+    "title":  "promotion smoke test",
+    "createdAt":  "2026-03-31T11:50:46-05:00",
+    "updatedAt":  "2026-03-31T11:51:13-05:00",
+    "recoveredAt":  "2026-03-31T11:51:13-05:00",
+    "lastChecklistUpdateAt":  null,
+    "lastAttemptAt":  "2026-03-31T11:50:48-05:00",
+    "completedAt":  null,
+    "failedAt":  null,
+    "lastValidation":  null,
+    "workdir":  "C:\\labs\\Felix Playbook",
+    "status":  "running",
+    "backend":  "tmux",
+    "model":  "gpt-5.4",
+    "maxAttempts":  3,
+    "attempt":  0,
+    "summary":  "Verify detached fallback can be promoted back into tmux by the watcher.",
+    "prdPath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260331-115046-promotion-smoke-test\\prd.md",
+    "checklistPath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260331-115046-promotion-smoke-test\\checklist.json",
+    "completionPath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260331-115046-promotion-smoke-test\\completion.md",
+    "taskDir":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260331-115046-promotion-smoke-test",
+    "logDir":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260331-115046-promotion-smoke-test\\logs",
+    "processId":  null,
+    "sessionName":  "felix-20260331-115046-promotion-smoke-test",
+    "lastMessagePath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260331-115046-promotion-smoke-test\\logs\\last-message.txt",
+    "completionHooks":  [
+                            "log",
+                            "telegram"
+                        ],
+    "validation":  {
+                       "requiredFiles":  [
+
+                                         ]
+                   },
+    "launcherScriptPath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\scripts\\Invoke-AgentSmokeWorker.ps1"
+}

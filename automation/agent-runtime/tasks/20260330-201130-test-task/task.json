@@ -2,22 +2,22 @@
     "id":  "20260330-201130-test-task",
     "title":  "Test task",
     "createdAt":  "2026-03-30T20:11:30-05:00",
-    "updatedAt":  "2026-03-31T11:27:56-05:00",
-    "recoveredAt":  "2026-03-31T11:27:56-05:00",
+    "updatedAt":  "2026-03-31T11:51:55-05:00",
+    "recoveredAt":  "2026-03-31T11:51:23-05:00",
     "lastChecklistUpdateAt":  null,
     "workdir":  "C:\\labs\\Felix Playbook",
-    "status":  "running",
+    "status":  "failed",
     "backend":  "detached-pwsh",
     "model":  "gpt-5.4",
     "maxAttempts":  3,
-    "attempt":  0,
+    "attempt":  3,
     "summary":  "Verify runtime works",
     "prdPath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260330-201130-test-task\\prd.md",
     "checklistPath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260330-201130-test-task\\checklist.json",
     "completionPath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260330-201130-test-task\\completion.md",
     "taskDir":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260330-201130-test-task",
     "logDir":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260330-201130-test-task\\logs",
-    "processId":  19412,
+    "processId":  22600,
     "sessionName":  null,
     "lastMessagePath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260330-201130-test-task\\logs\\last-message.txt",
     "completionHooks":  [
@@ -28,5 +28,21 @@
                        "requiredFiles":  [
 
                                          ]
-                   }
+                   },
+    "lastAttemptAt":  "2026-03-31T11:51:40-05:00",
+    "lastValidation":  {
+                           "taskId":  "20260330-201130-test-task",
+                           "valid":  false,
+                           "missingChecklist":  [
+                                                    "PRD reviewed",
+                                                    "Implementation complete",
+                                                    "Validation complete",
+                                                    "completion.md written"
+                                                ],
+                           "missingFiles":  [
+
+                                            ],
+                           "completionPath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260330-201130-test-task\\completion.md"
+                       },
+    "failedAt":  "2026-03-31T11:51:55-05:00"
 }

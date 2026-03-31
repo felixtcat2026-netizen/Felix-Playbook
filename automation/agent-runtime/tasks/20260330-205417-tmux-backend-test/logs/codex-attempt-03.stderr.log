@@ -1,0 +1,9 @@
+& : The term 'codex' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the 
+spelling of the name, or if a path was included, verify that the path is correct and try again.
+At C:\labs\Felix Playbook\automation\agent-runtime\scripts\Invoke-AgentLoop.ps1:47 char:17
++     $prompt | & codex exec `
++                 ~~~~~
+    + CategoryInfo          : ObjectNotFound: (codex:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+
