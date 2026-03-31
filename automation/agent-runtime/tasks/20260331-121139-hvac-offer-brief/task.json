@@ -1,0 +1,36 @@
+{
+    "id":  "20260331-121139-hvac-offer-brief",
+    "title":  "hvac offer brief",
+    "createdAt":  "2026-03-31T12:11:39-05:00",
+    "updatedAt":  "2026-03-31T12:12:21-05:00",
+    "recoveredAt":  null,
+    "lastChecklistUpdateAt":  null,
+    "lastAttemptAt":  null,
+    "completedAt":  null,
+    "failedAt":  null,
+    "lastValidation":  null,
+    "workdir":  "C:\\labs\\Felix Playbook",
+    "status":  "running",
+    "backend":  "tmux",
+    "model":  "gpt-5.4",
+    "maxAttempts":  3,
+    "attempt":  0,
+    "summary":  "Create a concise HVAC-specific offer brief for FollowUp Fuel and write the result into automation\\\\agent-runtime\\\\tasks\\\\\u003ctask-id\u003e\\\\completion.md",
+    "prdPath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260331-121139-hvac-offer-brief\\prd.md",
+    "checklistPath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260331-121139-hvac-offer-brief\\checklist.json",
+    "completionPath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260331-121139-hvac-offer-brief\\completion.md",
+    "taskDir":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260331-121139-hvac-offer-brief",
+    "logDir":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260331-121139-hvac-offer-brief\\logs",
+    "processId":  null,
+    "sessionName":  "felix-20260331-121139-hvac-offer-brief",
+    "lastMessagePath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260331-121139-hvac-offer-brief\\logs\\last-message.txt",
+    "completionHooks":  [
+                            "log",
+                            "telegram"
+                        ],
+    "validation":  {
+                       "requiredFiles":  [
+
+                                         ]
+                   }
+}
