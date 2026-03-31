@@ -1,0 +1,32 @@
+{
+    "id":  "20260330-205417-tmux-backend-test",
+    "title":  "tmux backend test",
+    "createdAt":  "2026-03-30T20:54:17-05:00",
+    "updatedAt":  "2026-03-30T21:12:30-05:00",
+    "recoveredAt":  "2026-03-30T21:12:30-05:00",
+    "lastChecklistUpdateAt":  null,
+    "workdir":  "C:\\labs\\Felix Playbook",
+    "status":  "running",
+    "backend":  "tmux",
+    "model":  "gpt-5.4",
+    "maxAttempts":  3,
+    "attempt":  0,
+    "summary":  "Verify tmux backend is selected and starts correctly",
+    "prdPath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260330-205417-tmux-backend-test\\prd.md",
+    "checklistPath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260330-205417-tmux-backend-test\\checklist.json",
+    "completionPath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260330-205417-tmux-backend-test\\completion.md",
+    "taskDir":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260330-205417-tmux-backend-test",
+    "logDir":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260330-205417-tmux-backend-test\\logs",
+    "processId":  null,
+    "sessionName":  "felix-20260330-205417-tmux-backend-test",
+    "lastMessagePath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260330-205417-tmux-backend-test\\logs\\last-message.txt",
+    "completionHooks":  [
+                            "log",
+                            "telegram"
+                        ],
+    "validation":  {
+                       "requiredFiles":  [
+
+                                         ]
+                   }
+}

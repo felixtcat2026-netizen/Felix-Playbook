@@ -189,16 +189,24 @@ function Start-DetachedAgentProcess {
   return $proc
 }
 
+function Convert-WindowsPathToWslPath {
+  param([Parameter(Mandatory = $true)][string]$WindowsPath)
+
+  $normalized = $WindowsPath -replace '\\', '/'
+  $drive = $normalized.Substring(0,1).ToLower()
+  return "/mnt/$drive" + $normalized.Substring(2)
+}
+
 function Start-TmuxAgentProcess {
   param([Parameter(Mandatory = $true)][string]$TaskId)
 
   $sessionName = "felix-$TaskId"
   $loopScript = Join-Path (Get-AgentRuntimeRoot) "scripts\Invoke-AgentLoop.ps1"
-  $winLoop = $loopScript -replace "\\", "/"
-  $drive = $winLoop.Substring(0,1).ToLower()
-  $wslLoop = "/mnt/$drive" + $winLoop.Substring(2)
+  $wslLoop = Convert-WindowsPathToWslPath -WindowsPath $loopScript
+  $command = "pwsh -NoProfile -File '$wslLoop' -TaskId '$TaskId'"
+  $tmuxCommand = "tmux new-session -d -s '$sessionName' `"$command`""
 
-  & wsl.exe sh -lc "tmux new-session -d -s '$sessionName' 'pwsh -NoProfile -File \"$wslLoop\" -TaskId \"$TaskId\"'" 2>$null
+  & wsl.exe sh -lc $tmuxCommand 2>$null
   if ($LASTEXITCODE -ne 0) {
     throw "Unable to start tmux session for task $TaskId"
   }
@@ -315,3 +323,4 @@ function Get-TaskSummary {
 }
 
 Export-ModuleMember -Function *-*
+

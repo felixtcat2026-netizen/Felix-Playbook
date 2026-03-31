@@ -1,0 +1,369 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="refresh" content="30">
+  <title>Felix Runtime Dashboard</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #121a33;
+      --panel-2: #182342;
+      --line: #2a3963;
+      --text: #eef3ff;
+      --muted: #9fb0d6;
+      --blue: #72c5ff;
+      --green: #69e5a8;
+      --amber: #ffd166;
+      --red: #ff7b7b;
+      --violet: #b8a7ff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Segoe UI, Inter, system-ui, sans-serif;
+      background: radial-gradient(circle at top, #18254b 0%, var(--bg) 48%);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    .wrap {
+      width: min(1200px, calc(100% - 32px));
+      margin: 32px auto 48px;
+    }
+    .hero {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 18px;
+      align-items: stretch;
+      margin-bottom: 22px;
+    }
+    .hero-card, .stat-card, .task-card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      box-shadow: 0 22px 60px rgba(0,0,0,0.25);
+    }
+    .hero-card {
+      padding: 24px;
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(2rem, 4vw, 3.2rem);
+      line-height: 1;
+    }
+    .sub {
+      margin: 0;
+      color: var(--muted);
+      font-size: 1.05rem;
+      max-width: 52rem;
+    }
+    .meta {
+      margin-top: 16px;
+      color: var(--blue);
+      font-size: 0.95rem;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .stat-card {
+      padding: 18px;
+    }
+    .stat-label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+    }
+    .grid {
+      display: grid;
+      gap: 18px;
+    }
+    .task-card {
+      padding: 20px;
+    }
+    .task-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: start;
+      margin-bottom: 18px;
+    }
+    .task-head h2 {
+      margin: 0 0 6px;
+      font-size: 1.3rem;
+    }
+    .task-id {
+      margin: 0;
+      color: var(--muted);
+      font-family: Consolas, monospace;
+      font-size: 0.92rem;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 0.84rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+      border: 1px solid transparent;
+    }
+    .pill.running { background: rgba(114,197,255,0.15); color: var(--blue); border-color: rgba(114,197,255,0.3); }
+    .pill.completed { background: rgba(105,229,168,0.15); color: var(--green); border-color: rgba(105,229,168,0.3); }
+    .pill.failed { background: rgba(255,123,123,0.15); color: var(--red); border-color: rgba(255,123,123,0.3); }
+    .pill.retrying, .pill.pending { background: rgba(255,209,102,0.15); color: var(--amber); border-color: rgba(255,209,102,0.3); }
+    .task-grid, .paths {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px 18px;
+      margin-bottom: 14px;
+    }
+    .label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 5px;
+    }
+    .value {
+      display: block;
+      font-weight: 600;
+    }
+    .path {
+      font-family: Consolas, monospace;
+      font-size: 0.88rem;
+      word-break: break-all;
+    }
+    details {
+      margin-top: 12px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      padding-top: 12px;
+    }
+    summary {
+      cursor: pointer;
+      color: var(--blue);
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    .checklist {
+      list-style: none;
+      margin: 10px 0 0;
+      padding: 0;
+      display: grid;
+      gap: 8px;
+    }
+    .checklist-item {
+      display: grid;
+      grid-template-columns: 90px 1fr 1fr;
+      gap: 10px;
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .check-state {
+      text-transform: uppercase;
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+    .checklist-item.done .check-state { color: var(--green); }
+    .checklist-item.blocked .check-state { color: var(--red); }
+    .check-title { font-weight: 600; }
+    .check-evidence { color: var(--muted); }
+    pre {
+      white-space: pre-wrap;
+      margin: 10px 0 0;
+      padding: 14px;
+      border-radius: 12px;
+      background: rgba(0,0,0,0.25);
+      border: 1px solid rgba(255,255,255,0.06);
+      color: #dce6ff;
+      font-family: Consolas, monospace;
+      font-size: 0.88rem;
+    }
+    .task-card.running { border-color: rgba(114,197,255,0.25); }
+    .task-card.completed { border-color: rgba(105,229,168,0.25); }
+    .task-card.failed { border-color: rgba(255,123,123,0.25); }
+    .task-card.pending, .task-card.retrying { border-color: rgba(255,209,102,0.25); }
+    @media (max-width: 900px) {
+      .hero, .task-grid, .paths, .stats { grid-template-columns: 1fr; }
+      .checklist-item { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <article class="hero-card">
+        <h1>Felix Runtime Dashboard</h1>
+        <p class="sub">Live local view of managed coding tasks, PRD checklist progress, backend selection, and recovery state. Refreshes every 30 seconds.</p>
+        <p class="meta">Generated: 2026-03-30 21:20:51 -05:00</p>
+      </article>
+      <div class="stats">
+        <article class="stat-card"><span class="stat-label">Total Tasks</span><span class="stat-value">4</span></article>
+        <article class="stat-card"><span class="stat-label">Running</span><span class="stat-value">4</span></article>
+        <article class="stat-card"><span class="stat-label">Completed</span><span class="stat-value">0</span></article>
+        <article class="stat-card"><span class="stat-label">Need Attention</span><span class="stat-value">0</span></article>
+      </div>
+    </section>
+    <section class="grid">
+      <section class='task-card running'>
+  <div class='task-head'>
+    <div>
+      <h2>tmux backend test</h2>
+      <p class='task-id'>20260330-205425-tmux-backend-test</p>
+    </div>
+    <span class='pill running'>running</span>
+  </div>
+  <div class='task-grid'>
+    <div><span class='label'>Backend</span><span class='value'>tmux</span></div>
+    <div><span class='label'>Session</span><span class='value'>felix-20260330-205425-tmux-backend-test</span></div>
+    <div><span class='label'>Attempts</span><span class='value'>0 / 3</span></div>
+    <div><span class='label'>Checklist</span><span class='value'>0 of 4 required complete</span></div>
+    <div><span class='label'>Updated</span><span class='value'>2026-03-30T21:12:30-05:00</span></div>
+    <div><span class='label'>Workdir</span><span class='value path'>C:\labs\Felix Playbook</span></div>
+  </div>
+  <details>
+    <summary>Checklist details</summary>
+    <ul class='checklist'>
+      <li class='checklist-item pending'><span class='check-state'>pending</span><span class='check-title'>PRD reviewed</span><span class='check-evidence'></span></li>
+<li class='checklist-item pending'><span class='check-state'>pending</span><span class='check-title'>Implementation complete</span><span class='check-evidence'></span></li>
+<li class='checklist-item pending'><span class='check-state'>pending</span><span class='check-title'>Validation complete</span><span class='check-evidence'></span></li>
+<li class='checklist-item pending'><span class='check-state'>pending</span><span class='check-title'>completion.md written</span><span class='check-evidence'></span></li>
+    </ul>
+  </details>
+  <details>
+    <summary>Completion preview</summary>
+    <pre># Completion
+
+Pending.</pre>
+  </details>
+  <div class='paths'>
+    <div><span class='label'>Task folder</span><span class='value path'>C:\labs\Felix Playbook\automation\agent-runtime\tasks\20260330-205425-tmux-backend-test</span></div>
+    <div><span class='label'>Completion file</span><span class='value path'>C:\labs\Felix Playbook\automation\agent-runtime\tasks\20260330-205425-tmux-backend-test\completion.md</span></div>
+  </div>
+</section>
+<section class='task-card running'>
+  <div class='task-head'>
+    <div>
+      <h2>tmux backend test</h2>
+      <p class='task-id'>20260330-205417-tmux-backend-test</p>
+    </div>
+    <span class='pill running'>running</span>
+  </div>
+  <div class='task-grid'>
+    <div><span class='label'>Backend</span><span class='value'>tmux</span></div>
+    <div><span class='label'>Session</span><span class='value'>felix-20260330-205417-tmux-backend-test</span></div>
+    <div><span class='label'>Attempts</span><span class='value'>0 / 3</span></div>
+    <div><span class='label'>Checklist</span><span class='value'>0 of 4 required complete</span></div>
+    <div><span class='label'>Updated</span><span class='value'>2026-03-30T21:12:30-05:00</span></div>
+    <div><span class='label'>Workdir</span><span class='value path'>C:\labs\Felix Playbook</span></div>
+  </div>
+  <details>
+    <summary>Checklist details</summary>
+    <ul class='checklist'>
+      <li class='checklist-item pending'><span class='check-state'>pending</span><span class='check-title'>PRD reviewed</span><span class='check-evidence'></span></li>
+<li class='checklist-item pending'><span class='check-state'>pending</span><span class='check-title'>Implementation complete</span><span class='check-evidence'></span></li>
+<li class='checklist-item pending'><span class='check-state'>pending</span><span class='check-title'>Validation complete</span><span class='check-evidence'></span></li>
+<li class='checklist-item pending'><span class='check-state'>pending</span><span class='check-title'>completion.md written</span><span class='check-evidence'></span></li>
+    </ul>
+  </details>
+  <details>
+    <summary>Completion preview</summary>
+    <pre># Completion
+
+Pending.</pre>
+  </details>
+  <div class='paths'>
+    <div><span class='label'>Task folder</span><span class='value path'>C:\labs\Felix Playbook\automation\agent-runtime\tasks\20260330-205417-tmux-backend-test</span></div>
+    <div><span class='label'>Completion file</span><span class='value path'>C:\labs\Felix Playbook\automation\agent-runtime\tasks\20260330-205417-tmux-backend-test\completion.md</span></div>
+  </div>
+</section>
+<section class='task-card running'>
+  <div class='task-head'>
+    <div>
+      <h2>Test task</h2>
+      <p class='task-id'>20260330-201130-test-task</p>
+    </div>
+    <span class='pill running'>running</span>
+  </div>
+  <div class='task-grid'>
+    <div><span class='label'>Backend</span><span class='value'>tmux</span></div>
+    <div><span class='label'>Session</span><span class='value'>felix-20260330-201130-test-task</span></div>
+    <div><span class='label'>Attempts</span><span class='value'>0 / 3</span></div>
+    <div><span class='label'>Checklist</span><span class='value'>0 of 4 required complete</span></div>
+    <div><span class='label'>Updated</span><span class='value'>2026-03-30T21:12:31-05:00</span></div>
+    <div><span class='label'>Workdir</span><span class='value path'>C:\labs\Felix Playbook</span></div>
+  </div>
+  <details>
+    <summary>Checklist details</summary>
+    <ul class='checklist'>
+      <li class='checklist-item pending'><span class='check-state'>pending</span><span class='check-title'>PRD reviewed</span><span class='check-evidence'></span></li>
+<li class='checklist-item pending'><span class='check-state'>pending</span><span class='check-title'>Implementation complete</span><span class='check-evidence'></span></li>
+<li class='checklist-item pending'><span class='check-state'>pending</span><span class='check-title'>Validation complete</span><span class='check-evidence'></span></li>
+<li class='checklist-item pending'><span class='check-state'>pending</span><span class='check-title'>completion.md written</span><span class='check-evidence'></span></li>
+    </ul>
+  </details>
+  <details>
+    <summary>Completion preview</summary>
+    <pre># Completion
+
+Pending.</pre>
+  </details>
+  <div class='paths'>
+    <div><span class='label'>Task folder</span><span class='value path'>C:\labs\Felix Playbook\automation\agent-runtime\tasks\20260330-201130-test-task</span></div>
+    <div><span class='label'>Completion file</span><span class='value path'>C:\labs\Felix Playbook\automation\agent-runtime\tasks\20260330-201130-test-task\completion.md</span></div>
+  </div>
+</section>
+<section class='task-card running'>
+  <div class='task-head'>
+    <div>
+      <h2>Sanity Test Task 3</h2>
+      <p class='task-id'>20260330-190125-sanity-test-task-3</p>
+    </div>
+    <span class='pill running'>running</span>
+  </div>
+  <div class='task-grid'>
+    <div><span class='label'>Backend</span><span class='value'>tmux</span></div>
+    <div><span class='label'>Session</span><span class='value'>felix-20260330-190125-sanity-test-task-3</span></div>
+    <div><span class='label'>Attempts</span><span class='value'>0 / 3</span></div>
+    <div><span class='label'>Checklist</span><span class='value'>0 of 4 required complete</span></div>
+    <div><span class='label'>Updated</span><span class='value'>2026-03-30T21:12:32-05:00</span></div>
+    <div><span class='label'>Workdir</span><span class='value path'>C:\labs\Felix Playbook</span></div>
+  </div>
+  <details>
+    <summary>Checklist details</summary>
+    <ul class='checklist'>
+      <li class='checklist-item pending'><span class='check-state'>pending</span><span class='check-title'>PRD reviewed</span><span class='check-evidence'></span></li>
+<li class='checklist-item pending'><span class='check-state'>pending</span><span class='check-title'>Implementation complete</span><span class='check-evidence'></span></li>
+<li class='checklist-item pending'><span class='check-state'>pending</span><span class='check-title'>Validation complete</span><span class='check-evidence'></span></li>
+<li class='checklist-item pending'><span class='check-state'>pending</span><span class='check-title'>completion.md written</span><span class='check-evidence'></span></li>
+    </ul>
+  </details>
+  <details>
+    <summary>Completion preview</summary>
+    <pre># Completion
+
+Pending.</pre>
+  </details>
+  <div class='paths'>
+    <div><span class='label'>Task folder</span><span class='value path'>C:\labs\Felix Playbook\automation\agent-runtime\tasks\20260330-190125-sanity-test-task-3</span></div>
+    <div><span class='label'>Completion file</span><span class='value path'>C:\labs\Felix Playbook\automation\agent-runtime\tasks\20260330-190125-sanity-test-task-3\completion.md</span></div>
+  </div>
+</section>
+    </section>
+  </div>
+</body>
+</html>

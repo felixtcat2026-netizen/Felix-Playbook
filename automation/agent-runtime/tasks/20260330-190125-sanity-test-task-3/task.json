@@ -2,10 +2,10 @@
     "id":  "20260330-190125-sanity-test-task-3",
     "title":  "Sanity Test Task 3",
     "createdAt":  "2026-03-30T19:01:25-05:00",
-    "updatedAt":  "2026-03-30T20:20:32-05:00",
+    "updatedAt":  "2026-03-30T21:12:32-05:00",
     "workdir":  "C:\\labs\\Felix Playbook",
     "status":  "running",
-    "backend":  "detached-pwsh",
+    "backend":  "tmux",
     "model":  "gpt-5.4",
     "maxAttempts":  3,
     "attempt":  0,
@@ -15,8 +15,8 @@
     "completionPath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260330-190125-sanity-test-task-3\\completion.md",
     "taskDir":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260330-190125-sanity-test-task-3",
     "logDir":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260330-190125-sanity-test-task-3\\logs",
-    "processId":  22452,
-    "sessionName":  null,
+    "processId":  null,
+    "sessionName":  "felix-20260330-190125-sanity-test-task-3",
     "lastMessagePath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260330-190125-sanity-test-task-3\\logs\\last-message.txt",
     "completionHooks":  [
                             "log",
@@ -27,5 +27,5 @@
 
                                          ]
                    },
-    "recoveredAt":  "2026-03-30T20:20:32-05:00"
+    "recoveredAt":  "2026-03-30T21:12:32-05:00"
 }
