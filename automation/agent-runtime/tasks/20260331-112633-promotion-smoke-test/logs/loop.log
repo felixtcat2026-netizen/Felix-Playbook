@@ -1,0 +1,5 @@
+[2026-03-31T11:27:55-05:00] smoke-worker tick=1 backend=detached-pwsh
+[2026-03-31T11:30:21-05:00] smoke-worker tick=1 backend=detached-pwsh
+[2026-03-31T11:30:26-05:00] smoke-worker tick=2 backend=detached-pwsh
+[2026-03-31T11:30:31-05:00] smoke-worker tick=3 backend=detached-pwsh
+[2026-03-31T11:30:36-05:00] smoke-worker tick=4 backend=detached-pwsh

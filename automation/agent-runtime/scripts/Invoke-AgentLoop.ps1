@@ -6,15 +6,34 @@ $ErrorActionPreference = "Stop"
 $modulePath = Join-Path (Split-Path -Parent $PSScriptRoot) "runtime\AgentRuntime.psm1"
 Import-Module $modulePath -Force
 
+function Set-ManifestValue {
+  param(
+    [Parameter(Mandatory = $true)]$Manifest,
+    [Parameter(Mandatory = $true)][string]$Name,
+    $Value
+  )
+
+  if ($Manifest.PSObject.Properties[$Name]) {
+    $Manifest.$Name = $Value
+  } else {
+    $Manifest | Add-Member -NotePropertyName $Name -NotePropertyValue $Value -Force
+  }
+}
+
 $manifest = Get-TaskManifest -TaskId $TaskId
 $runnerLog = Join-Path $manifest.logDir "loop.log"
 
 for ($attempt = $manifest.attempt + 1; $attempt -le $manifest.maxAttempts; $attempt++) {
   $manifest = Update-TaskManifest -TaskId $TaskId -Update {
     param($m)
+    $timestamp = Get-Timestamp
     $m.attempt = $attempt
     $m.status = "running"
-    $m.lastAttemptAt = Get-Timestamp
+    if ($m.PSObject.Properties['lastAttemptAt']) {
+      $m.lastAttemptAt = $timestamp
+    } else {
+      $m | Add-Member -NotePropertyName lastAttemptAt -NotePropertyValue $timestamp -Force
+    }
   }
 
   "[$(Get-Timestamp)] attempt=$attempt starting" | Add-Content -LiteralPath $runnerLog
@@ -45,8 +64,13 @@ for ($attempt = $manifest.attempt + 1; $attempt -le $manifest.maxAttempts; $atte
   if ($codexExit -eq 0 -and $validation.valid) {
     $manifest = Update-TaskManifest -TaskId $TaskId -Update {
       param($m)
+      $timestamp = Get-Timestamp
       $m.status = "completed"
-      $m.completedAt = Get-Timestamp
+      if ($m.PSObject.Properties['completedAt']) {
+        $m.completedAt = $timestamp
+      } else {
+        $m | Add-Member -NotePropertyName completedAt -NotePropertyValue $timestamp -Force
+      }
     }
     "[$(Get-Timestamp)] attempt=$attempt completed" | Add-Content -LiteralPath $runnerLog
     & (Join-Path $PSScriptRoot "Invoke-CompletionHook.ps1") -TaskId $TaskId | Out-Null
@@ -56,7 +80,11 @@ for ($attempt = $manifest.attempt + 1; $attempt -le $manifest.maxAttempts; $atte
   $manifest = Update-TaskManifest -TaskId $TaskId -Update {
     param($m)
     $m.status = "retrying"
-    $m.lastValidation = $validation
+    if ($m.PSObject.Properties['lastValidation']) {
+      $m.lastValidation = $validation
+    } else {
+      $m | Add-Member -NotePropertyName lastValidation -NotePropertyValue $validation -Force
+    }
   }
 
   "[$(Get-Timestamp)] attempt=$attempt failed validation or codex exit ($codexExit)" | Add-Content -LiteralPath $runnerLog
@@ -65,9 +93,15 @@ for ($attempt = $manifest.attempt + 1; $attempt -le $manifest.maxAttempts; $atte
 
 $manifest = Update-TaskManifest -TaskId $TaskId -Update {
   param($m)
+  $timestamp = Get-Timestamp
   $m.status = "failed"
-  $m.failedAt = Get-Timestamp
+  if ($m.PSObject.Properties['failedAt']) {
+    $m.failedAt = $timestamp
+  } else {
+    $m | Add-Member -NotePropertyName failedAt -NotePropertyValue $timestamp -Force
+  }
 }
 
 "[$(Get-Timestamp)] task failed after max attempts" | Add-Content -LiteralPath $runnerLog
+& (Join-Path $PSScriptRoot 'Send-AgentOpsNotice.ps1') -TaskId $TaskId -Event failed -Reason 'max-attempts-exceeded' -Extra "Attempts: $($manifest.maxAttempts)" | Out-Null
 exit 1

@@ -8,6 +8,7 @@ Import-Module $modulePath -Force
 
 $results = @()
 $staleCutoff = (Get-Date).ToUniversalTime().AddMinutes(-1 * $StaleMinutes)
+$config = Get-AgentRuntimeConfig
 
 foreach ($dir in Get-RecentTasks) {
   $taskId = $dir.Name
@@ -15,6 +16,7 @@ foreach ($dir in Get-RecentTasks) {
   $needsRestart = $false
   $reason = ""
   $currentStatus = [string]$manifest.status
+  $promotionCandidate = $false
 
   switch ($currentStatus) {
     "pending" {
@@ -47,8 +49,75 @@ foreach ($dir in Get-RecentTasks) {
           $reason = "stale-activity"
         }
       }
+
+      if (-not $needsRestart -and $Recover -and $manifest.backend -eq 'detached-pwsh' -and $config.preferredBackend -eq 'tmux') {
+        $availableBackend = Get-AvailableBackend
+        if ($availableBackend -eq 'tmux' -and (Test-DetachedProcessAlive -ProcessId $manifest.processId)) {
+          $promotionCandidate = $true
+        }
+      }
       break
     }
+  }
+
+  if ($promotionCandidate) {
+    $oldPid = [int]$manifest.processId
+    try {
+      Stop-Process -Id $oldPid -Force -ErrorAction SilentlyContinue
+    } catch {
+    }
+
+    try {
+      $tmux = Start-TmuxAgentProcess -TaskId $taskId
+      $manifest = Update-TaskManifest -TaskId $taskId -Update {
+        param($m)
+        $m.backend = 'tmux'
+        $m.sessionName = $tmux.SessionName
+        $m.processId = $null
+        $m.status = 'running'
+        if ($m.PSObject.Properties.Name -notcontains 'recoveredAt') {
+          $m | Add-Member -NotePropertyName recoveredAt -NotePropertyValue (Get-Timestamp) -Force
+        } else {
+          $m.recoveredAt = Get-Timestamp
+        }
+      }
+      & (Join-Path $PSScriptRoot 'Send-AgentOpsNotice.ps1') -TaskId $taskId -Event restarted -Reason 'promoted-to-preferred-backend' -Extra 'Promoted from detached-pwsh to tmux after tmux became healthy again' | Out-Null
+      $results += [pscustomobject]@{
+        taskId = $taskId
+        action = 'promoted'
+        backend = 'tmux'
+        sessionName = $tmux.SessionName
+        pid = $null
+        reason = 'promoted-to-preferred-backend'
+        status = $manifest.status
+      }
+    } catch {
+      $proc = Start-DetachedAgentProcess -TaskId $taskId
+      $manifest = Update-TaskManifest -TaskId $taskId -Update {
+        param($m)
+        $m.backend = 'detached-pwsh'
+        $m.processId = $proc.Id
+        $m.sessionName = $null
+        $m.status = 'running'
+        if ($m.PSObject.Properties.Name -notcontains 'recoveredAt') {
+          $m | Add-Member -NotePropertyName recoveredAt -NotePropertyValue (Get-Timestamp) -Force
+        } else {
+          $m.recoveredAt = Get-Timestamp
+        }
+      }
+      & (Join-Path $PSScriptRoot 'Send-AgentOpsNotice.ps1') -TaskId $taskId -Event 'needs-attention' -Reason 'tmux-promotion-failed' -Extra $_.Exception.Message | Out-Null
+      $results += [pscustomobject]@{
+        taskId = $taskId
+        action = 'promotion-failed-fallback-restored'
+        backend = 'detached-pwsh'
+        sessionName = $null
+        pid = $proc.Id
+        reason = 'tmux-promotion-failed'
+        status = $manifest.status
+      }
+    }
+
+    continue
   }
 
   if ($needsRestart -and $Recover) {
@@ -61,29 +130,37 @@ foreach ($dir in Get-RecentTasks) {
 
     $backend = Get-AvailableBackend
     if ($backend -eq "tmux") {
-      $tmux = Start-TmuxAgentProcess -TaskId $taskId
-      $manifest = Update-TaskManifest -TaskId $taskId -Update {
-        param($m)
-        $m.backend = "tmux"
-        $m.sessionName = $tmux.SessionName
-        $m.processId = $null
-        $m.status = "running"
-        if ($m.PSObject.Properties.Name -notcontains 'recoveredAt') {
-          $m | Add-Member -NotePropertyName recoveredAt -NotePropertyValue (Get-Timestamp) -Force
-        } else {
-          $m.recoveredAt = Get-Timestamp
+      try {
+        $tmux = Start-TmuxAgentProcess -TaskId $taskId
+        $manifest = Update-TaskManifest -TaskId $taskId -Update {
+          param($m)
+          $m.backend = "tmux"
+          $m.sessionName = $tmux.SessionName
+          $m.processId = $null
+          $m.status = "running"
+          if ($m.PSObject.Properties.Name -notcontains 'recoveredAt') {
+            $m | Add-Member -NotePropertyName recoveredAt -NotePropertyValue (Get-Timestamp) -Force
+          } else {
+            $m.recoveredAt = Get-Timestamp
+          }
         }
+        & (Join-Path $PSScriptRoot 'Send-AgentOpsNotice.ps1') -TaskId $taskId -Event restarted -Reason $reason -Extra 'Recovered by watcher into tmux backend' | Out-Null
+        $results += [pscustomobject]@{
+          taskId = $taskId
+          action = "restarted"
+          backend = "tmux"
+          sessionName = $tmux.SessionName
+          pid = $null
+          reason = $reason
+          status = $manifest.status
+        }
+      } catch {
+        $backend = 'detached-pwsh'
+        & (Join-Path $PSScriptRoot 'Send-AgentOpsNotice.ps1') -TaskId $taskId -Event 'needs-attention' -Reason 'tmux-launch-failed' -Extra $_.Exception.Message | Out-Null
       }
-      $results += [pscustomobject]@{
-        taskId = $taskId
-        action = "restarted"
-        backend = "tmux"
-        sessionName = $tmux.SessionName
-        pid = $null
-        reason = $reason
-        status = $manifest.status
-      }
-    } else {
+    }
+
+    if ($backend -eq "detached-pwsh") {
       $proc = Start-DetachedAgentProcess -TaskId $taskId
       $manifest = Update-TaskManifest -TaskId $taskId -Update {
         param($m)
@@ -97,6 +174,7 @@ foreach ($dir in Get-RecentTasks) {
           $m.recoveredAt = Get-Timestamp
         }
       }
+      & (Join-Path $PSScriptRoot 'Send-AgentOpsNotice.ps1') -TaskId $taskId -Event restarted -Reason $reason -Extra 'Recovered by watcher into detached backend' | Out-Null
       $results += [pscustomobject]@{
         taskId = $taskId
         action = "restarted"
@@ -109,6 +187,10 @@ foreach ($dir in Get-RecentTasks) {
     }
 
     continue
+  }
+
+  if ($needsRestart -and -not $Recover) {
+    & (Join-Path $PSScriptRoot 'Send-AgentOpsNotice.ps1') -TaskId $taskId -Event 'needs-attention' -Reason $reason -Extra 'Watcher detected issue but recover was not requested' | Out-Null
   }
 
   $summary = Get-TaskSummary -TaskId $taskId

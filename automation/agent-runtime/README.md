@@ -9,7 +9,7 @@ It is designed around six core capabilities:
 - Codex CLI orchestration
 - Ralph-style retry loops that restart failed tasks
 - completion hooks for notifications and logging
-- parallel detached coding agents
+- parallel coding agents
 - PRD plus checklist task tracking
 
 ## What You Get
@@ -41,10 +41,7 @@ needed, and fires completion hooks when work is actually done.
 
 ## Backends
 
-The runtime prefers `tmux` when a supported WSL + tmux environment exists, but this machine does
-not currently have WSL installed. Until then it uses a restart-safe detached PowerShell backend.
-
-That means you can use it today, and later switch to tmux simply by installing WSL + tmux.
+The runtime now prefers and uses `tmux` on this machine because WSL + tmux + `pwsh` are installed and verified working.`r`n`r`nThe detached PowerShell backend remains available only as a fallback if tmux is unavailable or broken.
 
 ## Main Scripts
 
@@ -112,3 +109,37 @@ If the local OpenClaw Telegram config is present, completion hooks will try to n
 - topic: `#Ops` (`86`)
 
 You can override that later in `state/runtime-config.json`.
+
+Lifecycle notices now post to Telegram `#Ops` for:
+
+- task started
+- task restarted
+- task failed
+- task completed
+- task needs attention
+
+You can also send a compact runtime summary to Telegram on demand:
+
+```powershell
+.\automation\agent-runtime\scripts\Send-AgentOpsSummary.ps1
+```
+
+Or print the same summary locally:
+
+```powershell
+.\automation\agent-runtime\scripts\Get-AgentOpsSummary.ps1
+```
+
+
+
+
+## Heartbeat Cadence
+
+There are currently two different heartbeat-style cadences in this setup:
+
+- OpenClaw internal runtime heartbeat: 30m (main) from openclaw status --deep
+- Felix hourly heartbeat worker cron: every 1h via hourly-heartbeat-worker
+
+When reporting ops status, treat these as separate signals rather than collapsing them into one cadence line.
+
+

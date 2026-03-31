@@ -25,36 +25,7 @@ $event = [ordered]@{
 
 ($event | ConvertTo-Json -Depth 20 -Compress) | Add-Content -LiteralPath $logPath
 $event | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $sentinelPath
-
-if ($config.notifyOnCompletion -and $config.notifyTransport -eq "telegram") {
-  $openclawConfig = "C:\Users\Damian\.openclaw\openclaw.json"
-  if (Test-Path -LiteralPath $openclawConfig) {
-    try {
-      $cfg = Get-Content -LiteralPath $openclawConfig -Raw | ConvertFrom-Json
-      $token = $cfg.channels.telegram.botToken
-      $chatId = $config.defaultTopicChatId
-      $topicId = [string]$config.defaultTopicId
-      if ($token -and $chatId -and $topicId) {
-        $message = @"
-Agent task completed: $($manifest.title)
-Task ID: $TaskId
-Backend: $($manifest.backend)
-Completion: $($manifest.completionPath)
-"@
-
-        $body = @{
-          chat_id = $chatId
-          message_thread_id = $topicId
-          text = $message
-        }
-
-        Invoke-RestMethod -Method Post -Uri "https://api.telegram.org/bot$token/sendMessage" -Body $body | Out-Null
-      }
-    } catch {
-      # Completion log + sentinel remain the fallback.
-    }
-  }
-}
+& (Join-Path $PSScriptRoot 'Send-AgentOpsNotice.ps1') -TaskId $TaskId -Event completed -Extra $manifest.completionPath | Out-Null
 
 if ($config.customCompletionHook -and -not [string]::IsNullOrWhiteSpace([string]$config.customCompletionHook)) {
   try {

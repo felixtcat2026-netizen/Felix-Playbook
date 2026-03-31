@@ -167,10 +167,21 @@ $requiredFilesText
 "@
 }
 
+function Get-TaskLauncherScript {
+  param([Parameter(Mandatory = $true)][string]$TaskId)
+
+  $manifest = Get-TaskManifest -TaskId $TaskId
+  if ($manifest.PSObject.Properties['launcherScriptPath'] -and -not [string]::IsNullOrWhiteSpace([string]$manifest.launcherScriptPath)) {
+    return [string]$manifest.launcherScriptPath
+  }
+
+  return (Join-Path (Get-AgentRuntimeRoot) "scripts\Invoke-AgentLoop.ps1")
+}
+
 function Start-DetachedAgentProcess {
   param([Parameter(Mandatory = $true)][string]$TaskId)
 
-  $scriptPath = Join-Path (Get-AgentRuntimeRoot) "scripts\Invoke-AgentLoop.ps1"
+  $scriptPath = Get-TaskLauncherScript -TaskId $TaskId
   $logDir = Get-LogsPath -TaskId $TaskId
   if (-not (Test-Path -LiteralPath $logDir)) {
     New-Item -ItemType Directory -Path $logDir -Force | Out-Null
@@ -178,10 +189,11 @@ function Start-DetachedAgentProcess {
 
   $stdout = Join-Path $logDir "runner.stdout.log"
   $stderr = Join-Path $logDir "runner.stderr.log"
+  $command = "& '$scriptPath' -TaskId '$TaskId'"
 
   $proc = Start-Process -FilePath "powershell.exe" `
-    -ArgumentList @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $scriptPath, "-TaskId", $TaskId) `
-    -WindowStyle Hidden `
+    -ArgumentList @("-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", $command) `
+    -WorkingDirectory $((Get-TaskManifest -TaskId $TaskId).workdir) `
     -RedirectStandardOutput $stdout `
     -RedirectStandardError $stderr `
     -PassThru
@@ -201,7 +213,7 @@ function Start-TmuxAgentProcess {
   param([Parameter(Mandatory = $true)][string]$TaskId)
 
   $sessionName = "felix-$TaskId"
-  $loopScript = Join-Path (Get-AgentRuntimeRoot) "scripts\Invoke-AgentLoop.ps1"
+  $loopScript = Get-TaskLauncherScript -TaskId $TaskId
   $wslLoop = Convert-WindowsPathToWslPath -WindowsPath $loopScript
   $command = "pwsh -NoProfile -File '$wslLoop' -TaskId '$TaskId'"
   $tmuxCommand = "tmux new-session -d -s '$sessionName' `"$command`""
@@ -323,4 +335,7 @@ function Get-TaskSummary {
 }
 
 Export-ModuleMember -Function *-*
+
+
+
 

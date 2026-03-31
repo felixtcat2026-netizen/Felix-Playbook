@@ -2,23 +2,23 @@
     "id":  "20260330-205425-tmux-backend-test",
     "title":  "tmux backend test",
     "createdAt":  "2026-03-30T20:54:25-05:00",
-    "updatedAt":  "2026-03-30T21:12:30-05:00",
-    "recoveredAt":  "2026-03-30T21:12:30-05:00",
+    "updatedAt":  "2026-03-31T11:27:57-05:00",
+    "recoveredAt":  "2026-03-31T11:27:53-05:00",
     "lastChecklistUpdateAt":  null,
     "workdir":  "C:\\labs\\Felix Playbook",
-    "status":  "running",
-    "backend":  "tmux",
+    "status":  "failed",
+    "backend":  "detached-pwsh",
     "model":  "gpt-5.4",
     "maxAttempts":  3,
-    "attempt":  0,
+    "attempt":  3,
     "summary":  "Verify tmux backend is selected and starts correctly",
     "prdPath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260330-205425-tmux-backend-test\\prd.md",
     "checklistPath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260330-205425-tmux-backend-test\\checklist.json",
     "completionPath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260330-205425-tmux-backend-test\\completion.md",
     "taskDir":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260330-205425-tmux-backend-test",
     "logDir":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260330-205425-tmux-backend-test\\logs",
-    "processId":  null,
-    "sessionName":  "felix-20260330-205425-tmux-backend-test",
+    "processId":  24348,
+    "sessionName":  null,
     "lastMessagePath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260330-205425-tmux-backend-test\\logs\\last-message.txt",
     "completionHooks":  [
                             "log",
@@ -28,5 +28,21 @@
                        "requiredFiles":  [
 
                                          ]
-                   }
+                   },
+    "lastAttemptAt":  "2026-03-31T10:51:04-05:00",
+    "lastValidation":  {
+                           "taskId":  "20260330-205425-tmux-backend-test",
+                           "valid":  false,
+                           "missingChecklist":  [
+                                                    "PRD reviewed",
+                                                    "Implementation complete",
+                                                    "Validation complete",
+                                                    "completion.md written"
+                                                ],
+                           "missingFiles":  [
+
+                                            ],
+                           "completionPath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\tasks\\20260330-205425-tmux-backend-test\\completion.md"
+                       },
+    "failedAt":  "2026-03-31T11:27:57-05:00"
 }
