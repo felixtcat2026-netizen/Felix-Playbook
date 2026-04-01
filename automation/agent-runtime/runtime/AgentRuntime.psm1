@@ -192,7 +192,8 @@ function Start-DetachedAgentProcess {
   $stderr = Join-Path $logDir "runner.stderr.log"
   $command = "& '$scriptPath' -TaskId '$TaskId'"
 
-  $proc = Start-Process -FilePath "powershell.exe" `
+  $psExe = if (Get-Command pwsh -ErrorAction SilentlyContinue) { "pwsh.exe" } else { "powershell.exe" }
+  $proc = Start-Process -FilePath $psExe `
     -ArgumentList @("-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", $command) `
     -WorkingDirectory $((Get-TaskManifest -TaskId $TaskId).workdir) `
     -RedirectStandardOutput $stdout `
@@ -219,6 +220,8 @@ function Start-TmuxAgentProcess {
   $command = "pwsh -NoProfile -File '$wslLoop' -TaskId '$TaskId'"
   $tmuxCommand = "tmux new-session -d -s '$sessionName' `"$command`""
 
+  # Kill any stale session with the same name before creating a new one
+  & wsl.exe sh -lc "tmux kill-session -t '$sessionName' 2>/dev/null || true" 2>$null
   & wsl.exe sh -lc $tmuxCommand 2>$null
   if ($LASTEXITCODE -ne 0) {
     throw "Unable to start tmux session for task $TaskId"

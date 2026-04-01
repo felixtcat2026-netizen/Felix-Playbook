@@ -23,6 +23,39 @@ function Set-ManifestValue {
 $manifest = Get-TaskManifest -TaskId $TaskId
 $runnerLog = Join-Path $manifest.logDir "loop.log"
 
+if (-not (Test-Path -LiteralPath $manifest.logDir)) {
+  New-Item -ItemType Directory -Path $manifest.logDir -Force | Out-Null
+}
+
+# Resolve codex path once — fail immediately (no retries) if not found
+$codexExe = $null
+$codexCmd = Get-Command codex -ErrorAction SilentlyContinue
+if ($codexCmd) {
+  $codexExe = $codexCmd.Source
+} else {
+  foreach ($candidate in @(
+    (Join-Path $env:APPDATA "npm\codex.cmd"),
+    (Join-Path $env:APPDATA "npm\codex")
+  )) {
+    if (Test-Path -LiteralPath $candidate -ErrorAction SilentlyContinue) {
+      $codexExe = $candidate
+      break
+    }
+  }
+}
+
+if (-not $codexExe) {
+  $errMsg = "codex CLI not found in PATH or $env:APPDATA\npm. Run: npm install -g @openai/codex"
+  "[$(Get-Timestamp)] FATAL: $errMsg" | Add-Content -LiteralPath $runnerLog
+  Update-TaskManifest -TaskId $TaskId -Update {
+    param($m)
+    $m.status = "failed"
+    if ($m.PSObject.Properties['failedAt']) { $m.failedAt = Get-Timestamp } else { $m | Add-Member -NotePropertyName failedAt -NotePropertyValue (Get-Timestamp) -Force }
+  } | Out-Null
+  & (Join-Path $PSScriptRoot 'Send-AgentOpsNotice.ps1') -TaskId $TaskId -Event failed -Reason 'codex-not-found' -Extra $errMsg | Out-Null
+  exit 1
+}
+
 for ($attempt = $manifest.attempt + 1; $attempt -le $manifest.maxAttempts; $attempt++) {
   $manifest = Update-TaskManifest -TaskId $TaskId -Update {
     param($m)
@@ -44,13 +77,13 @@ for ($attempt = $manifest.attempt + 1; $attempt -le $manifest.maxAttempts; $atte
   $stderrLog = Join-Path $manifest.logDir ("codex-attempt-{0:D2}.stderr.log" -f $attempt)
 
   try {
-    $prompt | & codex exec `
+    $prompt | & $codexExe exec `
       --json `
       --skip-git-repo-check `
       -C $manifest.workdir `
       -m $manifest.model `
       -o $manifest.lastMessagePath `
-      - | Tee-Object -FilePath $jsonLog | Out-File -LiteralPath $stdoutLog
+      - 2>$stderrLog | Tee-Object -FilePath $jsonLog | Out-File -LiteralPath $stdoutLog
 
     $codexExit = $LASTEXITCODE
   } catch {

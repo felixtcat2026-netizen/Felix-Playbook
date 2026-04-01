@@ -41,8 +41,16 @@ foreach ($dir in Get-RecentTasks) {
       break
     }
     "retrying" {
-      $needsRestart = $true
-      $reason = "status:retrying"
+      # Only restart if the backing process is actually dead — if it's alive it's mid-sleep between retries
+      $isAlive = if ($manifest.backend -eq 'tmux') {
+        Test-TmuxSessionAlive -SessionName $manifest.sessionName
+      } elseif ($manifest.backend -eq 'detached-pwsh') {
+        Test-DetachedProcessAlive -ProcessId $manifest.processId
+      } else { $false }
+      if (-not $isAlive) {
+        $needsRestart = $true
+        $reason = "status:retrying-process-dead"
+      }
       break
     }
     "stalled" {
@@ -58,7 +66,7 @@ foreach ($dir in Get-RecentTasks) {
           break
         }
         "running-idle" {
-          if (-not $summary.hasArtifactProgress -and $summary.idleMinutes -ne $null -and $summary.idleMinutes -ge $StaleMinutes) {
+          if (-not $summary.hasArtifactProgress -and $null -ne $summary.idleMinutes -and $summary.idleMinutes -ge $StaleMinutes) {
             $needsRestart = $true
             $reason = if ($summary.stallReason) { $summary.stallReason } else { "idle-no-artifact-progress" }
           }
@@ -160,6 +168,7 @@ foreach ($dir in Get-RecentTasks) {
           $m.sessionName = $tmux.SessionName
           $m.processId = $null
           $m.status = "running"
+          $m.attempt = 0
           $m.runtimeState = 'running-live'
           $m.liveVerified = $true
           $m.stallReason = $null
@@ -193,6 +202,7 @@ foreach ($dir in Get-RecentTasks) {
         $m.processId = $proc.Id
         $m.sessionName = $null
         $m.status = "running"
+        $m.attempt = 0
         $m.runtimeState = 'running-live'
         $m.liveVerified = $true
         $m.stallReason = $null
