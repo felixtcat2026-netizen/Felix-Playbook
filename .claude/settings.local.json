@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell -Command \"Get-ChildItem ''C:\\\\Users\\\\Damian\\\\.openclaw\\\\workspace\\\\projects\\\\digital-product-studio\\\\deliverables''\")",
+      "Bash(powershell -Command \"Select-String -Path ''C:\\\\Users\\\\Damian\\\\.openclaw\\\\workspace\\\\SOUL.md'' -Pattern ''exec|verified|FAIL|guard|tool'' | Select-Object LineNumber, Line | Select-Object -First 30\")",
+      "Bash(powershell -Command \"Select-String -Path ''C:\\\\Users\\\\Damian\\\\.openclaw\\\\workspace\\\\SOUL.md'' -Pattern ''No verified|exec tool call|suppressed|guarded'' | Select-Object LineNumber, Line\")",
+      "Bash(powershell -Command \"Select-String -Path ''C:\\\\Users\\\\Damian\\\\.openclaw\\\\workspace\\\\AGENTS.md'' -Pattern ''No verified|exec tool call|suppressed|guarded'' | Select-Object LineNumber, Line\")",
+      "Read(//c/Users/Damian/.openclaw/workspace/**)",
+      "Bash(powershell -Command \"Select-String -Path ''C:\\\\Users\\\\Damian\\\\.openclaw\\\\workspace\\\\SOUL.md'' -Pattern ''FAIL|verified|exec|tool'' | Select-Object LineNumber, Line | Select-Object -First 20\")",
+      "Bash(powershell -Command \"Get-ChildItem ''C:\\\\Users\\\\Damian\\\\.openclaw\\\\workspace'' -Recurse -Filter ''*.md'' | ForEach-Object { $f = $_.FullName; Select-String -Path $f -Pattern ''No verified exec'' | ForEach-Object { Write-Host $f; Write-Host $_ } }\")",
+      "Bash(powershell -Command \"Get-ChildItem ''C:\\\\Users\\\\Damian\\\\.claude\\\\plugins'' -Recurse -Filter ''*.md'' -ErrorAction SilentlyContinue | ForEach-Object { Select-String -Path $_.FullName -Pattern ''No verified exec'' -ErrorAction SilentlyContinue } | Select-Object -First 5\")",
+      "Bash(powershell -Command \"Get-ChildItem ''C:\\\\Users\\\\Damian\\\\.openclaw'' -Recurse -Include ''*.md'',''*.txt'',''*.js'',''*.json'' -ErrorAction SilentlyContinue | Where-Object { $_.Length -lt 500KB } | ForEach-Object { $r = Select-String -Path $_.FullName -Pattern ''No verified exec'' -ErrorAction SilentlyContinue; if \\($r\\) { Write-Host $_.FullName } } | Select-Object -First 10\")",
+      "Bash(powershell -Command \"Get-ChildItem ''C:\\\\Users\\\\Damian\\\\.openclaw'' -Recurse -Filter ''*.log'' -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 10 | Format-Table FullName, LastWriteTime, Length\")",
+      "Bash(powershell -Command \"Get-ChildItem ''C:\\\\Users\\\\Damian\\\\.openclaw'' -Recurse -ErrorAction SilentlyContinue | Where-Object { -not $_.PSIsContainer } | Sort-Object LastWriteTime -Descending | Select-Object FullName, LastWriteTime -First 20\")",
+      "Bash(powershell -Command \"Get-Content ''C:\\\\Users\\\\Damian\\\\.openclaw\\\\agents\\\\main\\\\sessions\\\\7d3d7775-716a-4cc9-9d5b-65910584980d-topic-285.jsonl'' -Last 20\")",
+      "Bash(powershell -Command \":*)",
+      "Bash(powershell -Command \"& ''C:\\\\Users\\\\Damian\\\\AppData\\\\Roaming\\\\npm\\\\openclaw.cmd'' cron add --name ''evening-reflection'' --cron ''0 21 * * *'' --timezone ''America/Chicago'' --session isolated --light-context --announce --message ''Run the daily-reflection skill: C:\\\\Users\\\\Damian\\\\.openclaw\\\\workspace\\\\skills\\\\daily-reflection\\\\SKILL.md. Append a Reflection section to today''''s daily note \\(C:\\\\labs\\\\Felix Playbook\\\\life\\\\daily\\\\YYYY-MM-DD.md\\) with Learned / Pattern / Follow-up / Mistake. If today is Monday, also run Memory Curation. If today is the 1st, also run Workspace Tidying. Message Damian only if there is a Follow-up or Mistake worth surfacing, or if SOUL.md needs attention.'' 2>&1\")",
+      "Bash(powershell -Command \"& ''C:\\\\Users\\\\Damian\\\\AppData\\\\Roaming\\\\npm\\\\openclaw.cmd'' cron add --help 2>&1\")"
+    ]
+  }
+}
