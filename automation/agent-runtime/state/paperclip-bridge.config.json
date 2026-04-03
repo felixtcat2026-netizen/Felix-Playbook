@@ -1,0 +1,15 @@
+{
+  "apiBaseUrl": "http://127.0.0.1:3100/api",
+  "uiBaseUrl": "http://127.0.0.1:3100",
+  "companyId": "9c5d7a79-46fd-4517-81bd-45649be55dbb",
+  "companyName": "Namtac A.I.",
+  "companyIssuePrefix": "NAM",
+  "felixAgentId": "f20d1784-ba12-4782-a275-8a87ad8a44ef",
+  "felixAgentName": "Felix",
+  "defaultProjectId": "85d914e6-43a6-40f9-a7c9-8a54a88f0d4d",
+  "defaultProjectName": "Onboarding",
+  "defaultGoalId": "c857143c-b3fc-40a7-b120-3c1523ddac91",
+  "defaultChatId": "-1003834402915",
+  "defaultTopicId": 83,
+  "watchPollSeconds": 60
+}

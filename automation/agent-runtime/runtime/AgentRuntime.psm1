@@ -46,6 +46,23 @@ function Write-JsonFile {
   $InputObject | ConvertTo-Json -Depth 100 | Set-Content -LiteralPath $Path
 }
 
+function ConvertTo-NormalizedArray {
+  param($InputObject)
+
+  if ($null -eq $InputObject) {
+    return @()
+  }
+
+  if ($InputObject -is [string]) {
+    return @($InputObject)
+  }
+
+  if ($InputObject -is [System.Collections.IEnumerable]) {
+    return @($InputObject)
+  }
+
+  return @($InputObject)
+}
 function Get-TaskRoot {
   Join-Path (Get-AgentRuntimeRoot) "tasks"
 }
@@ -84,6 +101,167 @@ function Get-Timestamp {
   (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssK")
 }
 
+function Get-OpenClawConfigPath {
+  "C:\Users\Damian\.openclaw\openclaw.json"
+}
+
+function Get-OpenClawConfig {
+  $path = Get-OpenClawConfigPath
+  if (-not (Test-Path -LiteralPath $path)) {
+    throw "Missing OpenClaw config: $path"
+  }
+
+  Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+}
+
+function Get-PaperclipBridgeConfigPath {
+  Join-Path (Get-AgentRuntimeRoot) "state\paperclip-bridge.config.json"
+}
+
+function Get-PaperclipBridgeStatePath {
+  Join-Path (Get-AgentRuntimeRoot) "state\paperclip-bridge.state.json"
+}
+
+function Get-PaperclipBridgeConfig {
+  Ensure-AgentRuntimeLayout
+  $path = Get-PaperclipBridgeConfigPath
+  if (-not (Test-Path -LiteralPath $path)) {
+    throw "Missing Paperclip bridge config: $path"
+  }
+
+  Read-JsonFile -Path $path
+}
+
+function Get-PaperclipBridgeState {
+  Ensure-AgentRuntimeLayout
+  $path = Get-PaperclipBridgeStatePath
+  if (-not (Test-Path -LiteralPath $path)) {
+    return [pscustomobject]@{
+      watchedIssues = [pscustomobject]@{}
+    }
+  }
+
+  $state = Read-JsonFile -Path $path
+  if (-not $state.PSObject.Properties['watchedIssues'] -or $null -eq $state.watchedIssues) {
+    $state | Add-Member -NotePropertyName watchedIssues -NotePropertyValue ([pscustomobject]@{}) -Force
+  }
+
+  return $state
+}
+
+function Save-PaperclipBridgeState {
+  param([Parameter(Mandatory = $true)]$State)
+
+  if (-not $State.PSObject.Properties['watchedIssues'] -or $null -eq $State.watchedIssues) {
+    $State | Add-Member -NotePropertyName watchedIssues -NotePropertyValue ([pscustomobject]@{}) -Force
+  }
+
+  Write-JsonFile -Path (Get-PaperclipBridgeStatePath) -InputObject $State
+}
+
+function Get-PaperclipIssueUrl {
+  param(
+    [Parameter(Mandatory = $true)]$Issue,
+    [Parameter()][AllowNull()]$Config = $null
+  )
+
+  $bridgeConfig = if ($null -ne $Config) { $Config } else { Get-PaperclipBridgeConfig }
+  $uiBaseUrl = [string]$bridgeConfig.uiBaseUrl
+  $issuePrefix = [string]$bridgeConfig.companyIssuePrefix
+  $identifier = [string]$Issue.identifier
+
+  if ([string]::IsNullOrWhiteSpace($uiBaseUrl) -or [string]::IsNullOrWhiteSpace($issuePrefix) -or [string]::IsNullOrWhiteSpace($identifier)) {
+    return $null
+  }
+
+  return ($uiBaseUrl.TrimEnd('/') + "/$issuePrefix/issues/$identifier")
+}
+
+function Send-TelegramBotMessage {
+  param(
+    [Parameter(Mandatory = $true)][string]$Message,
+    [Parameter()][string]$ChatId,
+    [Parameter()][AllowNull()][string]$TopicId
+  )
+
+  $cfg = Get-OpenClawConfig
+  $token = $cfg.channels.telegram.botToken
+  if ([string]::IsNullOrWhiteSpace([string]$token)) {
+    throw "OpenClaw Telegram bot token is missing."
+  }
+
+  $bridgeConfig = Get-PaperclipBridgeConfig
+  $resolvedChatId = if (-not [string]::IsNullOrWhiteSpace([string]$ChatId)) { [string]$ChatId } else { [string]$bridgeConfig.defaultChatId }
+  $resolvedTopicId = if (-not [string]::IsNullOrWhiteSpace([string]$TopicId)) { [string]$TopicId } else { [string]$bridgeConfig.defaultTopicId }
+
+  if ([string]::IsNullOrWhiteSpace($resolvedChatId)) {
+    throw "Telegram chat id is not configured."
+  }
+
+  $body = @{
+    chat_id = $resolvedChatId
+    text = $Message
+  }
+
+  if (-not [string]::IsNullOrWhiteSpace($resolvedTopicId)) {
+    $body.message_thread_id = $resolvedTopicId
+  }
+
+  Invoke-RestMethod -Method Post -Uri "https://api.telegram.org/bot$token/sendMessage" -Body $body | Out-Null
+}
+
+function Invoke-PaperclipApi {
+  param(
+    [Parameter(Mandatory = $true)][ValidateSet('GET','POST','PATCH','DELETE')][string]$Method,
+    [Parameter(Mandatory = $true)][string]$Path,
+    [Parameter()]$Body
+  )
+
+  $cfg = Get-PaperclipBridgeConfig
+  $baseUrl = [string]$cfg.apiBaseUrl
+  if ([string]::IsNullOrWhiteSpace($baseUrl)) {
+    throw "Paperclip apiBaseUrl is missing from bridge config."
+  }
+
+  $uri = $baseUrl.TrimEnd('/') + "/" + $Path.TrimStart('/')
+  $params = @{
+    Method = $Method
+    Uri = $uri
+  }
+
+  if ($PSBoundParameters.ContainsKey('Body') -and $null -ne $Body) {
+    $params.ContentType = 'application/json'
+    $params.Body = ($Body | ConvertTo-Json -Depth 20)
+  }
+
+  Invoke-RestMethod @params
+}
+
+function Get-PaperclipLatestComment {
+  param([Parameter(Mandatory = $true)][string]$IssueId)
+
+  $commentsResponse = Invoke-PaperclipApi -Method GET -Path "issues/$IssueId/comments"
+  $commentItems = if ($commentsResponse -and $commentsResponse.PSObject.Properties['value']) {
+    $commentsResponse.value
+  } else {
+    $commentsResponse
+  }
+
+  $comments = ConvertTo-NormalizedArray $commentItems
+  if ($comments.Count -eq 0) {
+    return $null
+  }
+
+  return $comments |
+    Sort-Object {
+      if ($_.PSObject.Properties['createdAt']) {
+        [datetime]$_.createdAt
+      } else {
+        Get-Date '1900-01-01'
+      }
+    } |
+    Select-Object -Last 1
+}
 function Get-TaskManifest {
   param([Parameter(Mandatory = $true)][string]$TaskId)
   Read-JsonFile -Path (Get-TaskManifestPath $TaskId)
@@ -471,3 +649,5 @@ function Get-TaskSummary {
 }
 
 Export-ModuleMember -Function *-*
+
+

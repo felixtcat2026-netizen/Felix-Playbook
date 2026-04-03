@@ -47,6 +47,14 @@ The runtime now prefers and uses `tmux` on this machine because WSL + tmux + `pw
 
 - `scripts/New-AgentTask.ps1`
   Create a new PRD-driven task folder.
+- `scripts/New-PaperclipDelegatedTask.ps1`
+  Create a Paperclip issue assigned to Paperclip Felix, register Telegram follow-up routing, and wake the agent.
+- `scripts/Get-PaperclipIssueStatus.ps1`
+  Return a grounded summary for a Paperclip issue and its active run/comment state.
+- `scripts/Watch-PaperclipBridge.ps1`
+  Poll watched Paperclip issues and mirror meaningful status changes back to Telegram.
+- `scripts/Install-PaperclipBridgeWatcherTask.ps1`
+  Register a Windows Scheduled Task that keeps the Paperclip-to-Telegram watcher running on logon and every few minutes.
 - `scripts/Start-AgentTask.ps1`
   Launch one detached task runner.
 - `scripts/Start-AgentBatch.ps1`
@@ -143,3 +151,35 @@ There are currently two different heartbeat-style cadences in this setup:
 When reporting ops status, treat these as separate signals rather than collapsing them into one cadence line.
 
 
+
+## Paperclip Bridge
+
+This runtime can also bridge Telegram Felix to Paperclip Felix.
+
+Use this when you want Telegram to stay the conversational front door, but the actual managed work should happen inside Paperclip:
+
+```powershell
+.\automation\agent-runtime\scripts\New-PaperclipDelegatedTask.ps1 `
+  -Title "Draft landing page copy" `
+  -Description "Create a first-pass landing page draft and assign follow-on implementation work." `
+  -ChatId "-1003834402915" `
+  -TopicId "83"
+```
+
+That command:
+
+- creates a Paperclip issue assigned to Paperclip Felix
+- wakes Paperclip Felix so he can break down or delegate the work
+- registers the issue for Telegram follow-up updates
+
+To install the watcher that pushes updates back into Telegram automatically:
+
+```powershell
+.\automation\agent-runtime\scripts\Install-PaperclipBridgeWatcherTask.ps1
+```
+
+Manual status check:
+
+```powershell
+.\automation\agent-runtime\scripts\Get-PaperclipIssueStatus.ps1 -Identifier NAM-4
+```
