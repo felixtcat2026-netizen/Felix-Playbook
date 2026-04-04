@@ -1,0 +1,33 @@
+{
+    "status":  "processed",
+    "processedAt":  "2026-04-03T14:11:24-05:00",
+    "sourcePath":  "C:\\labs\\Felix Playbook\\automation\\agent-runtime\\state\\paperclip-intake\\pending\\paperclip-intake-20260403-141046-529-queue-smoke-20260403-1418.json",
+    "request":  {
+                    "source":  "manual-queue",
+                    "createdAt":  "2026-04-03T14:10:46-05:00",
+                    "title":  "Bridge Queue Smoke Test 2026-04-03 14:18 CDT",
+                    "description":  "Internal smoke test for queue-based Telegram-to-Paperclip intake. No external actions.",
+                    "priority":  "high",
+                    "projectId":  "",
+                    "goalId":  "",
+                    "parentIssueId":  "",
+                    "assigneeAgentId":  "",
+                    "chatId":  "-1003834402915",
+                    "topicId":  "83",
+                    "messageId":  "queue-smoke-20260403-1418",
+                    "skipWake":  true,
+                    "skipTelegramNotice":  true,
+                    "skipWatchRegistration":  true
+                },
+    "result":  {
+                   "issueId":  "d4cd340b-d1e1-4c73-9ddc-8921bdf1cc0a",
+                   "identifier":  "NAM-11",
+                   "title":  "Bridge Queue Smoke Test 2026-04-03 14:18 CDT",
+                   "status":  "todo",
+                   "assigneeAgentId":  "f20d1784-ba12-4782-a275-8a87ad8a44ef",
+                   "wakeSent":  false,
+                   "issueUrl":  "http://127.0.0.1:3100/NAM/issues/NAM-11",
+                   "chatId":  "-1003834402915",
+                   "topicId":  "83"
+               }
+}

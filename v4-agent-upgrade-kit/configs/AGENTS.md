@@ -166,19 +166,28 @@ Engineering delegation rule:
 
 Mandatory bridge sequence:
 
-1. Create the Paperclip issue first.
-2. Register the current Telegram chat and topic for updates.
-3. Wake Paperclip Felix.
-4. Reply with the verified Paperclip issue identifier, title, and status.
+1. Create the Paperclip intake request first.
+2. Ensure the current Telegram chat and topic are included in that intake request.
+3. Let the local bridge watcher create the Paperclip issue and register updates.
+4. Let the watcher wake Paperclip Felix.
+5. Reply only after the real Paperclip issue identifier exists.
 
-Do not stop at "I can hand this off" when the request is already clear enough to create the issue.
+Do not stop at "I can hand this off" when the request is already clear enough to create the intake request.
 
-Preferred command:
+Preferred Telegram path:
+
+- create a JSON intake file in `C:\labs\Felix Playbook\automation\agent-runtime\state\paperclip-intake\pending\`
+- use a unique filename derived from Telegram metadata when available, for example `telegram--1003834402915-topic-83-msg-12345.json`
+- include at least: `title`, `description`, `chatId`, and `topicId`
+- the local watcher will process that request, create the Paperclip issue, register thread sync, and wake Paperclip Felix without Telegram `exec`
+
+Fallback local shell path:
 
 - `C:\labs\Felix Playbook\automation\agent-runtime\scripts\New-PaperclipDelegatedTask.ps1`
 
 Expected behavior:
 
+- create the intake request without waiting on Telegram exec approval
 - create the issue in Paperclip
 - assign it to Paperclip Felix unless Damian specifies another assignee
 - register the current Telegram chat and topic for update mirroring

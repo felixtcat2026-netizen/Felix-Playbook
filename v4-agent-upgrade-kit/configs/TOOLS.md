@@ -62,6 +62,7 @@ Heartbeat rule:
 
 For this machine, Telegram-to-Paperclip task handoff is implemented with these scripts:
 
+- `C:\labs\Felix Playbook\automation\agent-runtime\scripts\Enqueue-PaperclipDelegatedTask.ps1`
 - `C:\labs\Felix Playbook\automation\agent-runtime\scripts\New-PaperclipDelegatedTask.ps1`
 - `C:\labs\Felix Playbook\automation\agent-runtime\scripts\Get-PaperclipIssueStatus.ps1`
 - `C:\labs\Felix Playbook\automation\agent-runtime\scripts\Watch-PaperclipBridge.ps1`
@@ -71,12 +72,31 @@ Bridge config lives here:
 
 - `C:\labs\Felix Playbook\automation\agent-runtime\state\paperclip-bridge.config.json`
 
+Telegram-safe intake queue:
+
+- pending: `C:\labs\Felix Playbook\automation\agent-runtime\state\paperclip-intake\pending\`
+- processed: `C:\labs\Felix Playbook\automation\agent-runtime\state\paperclip-intake\processed\`
+- failed: `C:\labs\Felix Playbook\automation\agent-runtime\state\paperclip-intake\failed\`
+
 Practical rule:
 
-- when a Telegram request should become a managed Paperclip task, create it with `New-PaperclipDelegatedTask.ps1`, pass the current Telegram chat and topic when available, and report the real Paperclip issue identifier
+- when a Telegram request should become a managed Paperclip task, prefer the intake queue file path over Telegram `exec`
+- create a JSON file in the pending queue with at least `title`, `description`, `chatId`, and `topicId`
+- use a unique filename when possible, ideally derived from Telegram metadata such as chat id, topic id, and message id
+- the watcher will process that file, create the Paperclip issue, register Telegram follow-up routing, and wake Paperclip Felix
 - if Damian asks for task status, prefer `Get-PaperclipIssueStatus.ps1` over guessing from memory
 
-Preferred creation shape:
+Preferred Telegram creation shape:
+
+- path: `C:\labs\Felix Playbook\automation\agent-runtime\state\paperclip-intake\pending\telegram--1003834402915-topic-83-msg-12345.json`
+- body:
+  `{ "title": "<short title>", "description": "<grounded task summary>", "chatId": "<current telegram chat id>", "topicId": "<current telegram topic id>" }`
+
+Preferred local shell path:
+
+- `powershell -File "C:\labs\Felix Playbook\automation\agent-runtime\scripts\Enqueue-PaperclipDelegatedTask.ps1" -Title "<short title>" -Description "<grounded task summary>" -ChatId "<current telegram chat id>" -TopicId "<current telegram topic id>"`
+
+Fallback local shell path when interactive approval is available:
 
 - `powershell -File "C:\labs\Felix Playbook\automation\agent-runtime\scripts\New-PaperclipDelegatedTask.ps1" -Title "<short title>" -Description "<grounded task summary>" -ChatId "<current telegram chat id>" -TopicId "<current telegram topic id>"`
 

@@ -45,6 +45,128 @@ function Get-IssueSnapshot {
   }
 }
 
+function Get-QueueRequestValue {
+  param(
+    [Parameter(Mandatory = $true)]$Request,
+    [Parameter(Mandatory = $true)][string]$Name,
+    $Default = $null
+  )
+
+  if ($Request.PSObject.Properties[$Name]) {
+    return $Request.$Name
+  }
+
+  return $Default
+}
+
+function ConvertTo-SafeBoolean {
+  param($Value)
+
+  if ($null -eq $Value) {
+    return $false
+  }
+
+  if ($Value -is [bool]) {
+    return $Value
+  }
+
+  $text = [string]$Value
+  if ([string]::IsNullOrWhiteSpace($text)) {
+    return $false
+  }
+
+  switch ($text.Trim().ToLowerInvariant()) {
+    '1' { return $true }
+    'true' { return $true }
+    'yes' { return $true }
+    'on' { return $true }
+    default { return $false }
+  }
+}
+
+function Process-PaperclipIntakeQueue {
+  Ensure-PaperclipIntakeLayout
+
+  $pendingRoot = Get-PaperclipIntakePendingRoot
+  $processedRoot = Get-PaperclipIntakeProcessedRoot
+  $failedRoot = Get-PaperclipIntakeFailedRoot
+  $now = Get-Date
+
+  $pendingFiles = @(Get-ChildItem -LiteralPath $pendingRoot -Filter '*.json' -File | Sort-Object LastWriteTime)
+  foreach ($file in $pendingFiles) {
+    if (($now - $file.LastWriteTime).TotalSeconds -lt 5) {
+      continue
+    }
+
+    $raw = $null
+    try {
+      $raw = Get-Content -LiteralPath $file.FullName -Raw
+      $request = $raw | ConvertFrom-Json
+      $title = [string](Get-QueueRequestValue -Request $request -Name 'title' -Default '')
+      if ([string]::IsNullOrWhiteSpace($title)) {
+        throw 'Queue request is missing required field: title'
+      }
+
+      $params = @{
+        Title = $title
+        Description = [string](Get-QueueRequestValue -Request $request -Name 'description' -Default '')
+        Priority = [string](Get-QueueRequestValue -Request $request -Name 'priority' -Default 'high')
+        ProjectId = [string](Get-QueueRequestValue -Request $request -Name 'projectId' -Default '')
+        GoalId = [string](Get-QueueRequestValue -Request $request -Name 'goalId' -Default '')
+        ParentIssueId = [string](Get-QueueRequestValue -Request $request -Name 'parentIssueId' -Default '')
+        AssigneeAgentId = [string](Get-QueueRequestValue -Request $request -Name 'assigneeAgentId' -Default '')
+        ChatId = [string](Get-QueueRequestValue -Request $request -Name 'chatId' -Default '')
+        TopicId = [string](Get-QueueRequestValue -Request $request -Name 'topicId' -Default '')
+        SkipWake = (ConvertTo-SafeBoolean (Get-QueueRequestValue -Request $request -Name 'skipWake' -Default $false))
+        SkipTelegramNotice = (ConvertTo-SafeBoolean (Get-QueueRequestValue -Request $request -Name 'skipTelegramNotice' -Default $false))
+        SkipWatchRegistration = (ConvertTo-SafeBoolean (Get-QueueRequestValue -Request $request -Name 'skipWatchRegistration' -Default $false))
+      }
+
+      $result = New-PaperclipDelegatedIssue @params
+      $record = [ordered]@{
+        status = 'processed'
+        processedAt = Get-Timestamp
+        sourcePath = $file.FullName
+        request = $request
+        result = $result
+      }
+      Write-JsonFile -Path (Join-Path $processedRoot $file.Name) -InputObject $record
+      Remove-Item -LiteralPath $file.FullName -Force
+    } catch {
+      $chatId = $null
+      $topicId = $null
+      try {
+        if ($raw) {
+          $parsedForNotify = $raw | ConvertFrom-Json
+          $chatId = [string](Get-QueueRequestValue -Request $parsedForNotify -Name 'chatId' -Default '')
+          $topicId = [string](Get-QueueRequestValue -Request $parsedForNotify -Name 'topicId' -Default '')
+        }
+      } catch {
+      }
+
+      $errorMessage = [string]$_.Exception.Message
+      $failure = [ordered]@{
+        status = 'failed'
+        failedAt = Get-Timestamp
+        sourcePath = $file.FullName
+        error = $errorMessage
+        raw = $raw
+      }
+      Write-JsonFile -Path (Join-Path $failedRoot $file.Name) -InputObject $failure
+      Remove-Item -LiteralPath $file.FullName -Force
+
+      if (-not [string]::IsNullOrWhiteSpace($chatId)) {
+        $lines = @(
+          'Paperclip intake warning',
+          "- Request file: $($file.Name)",
+          "- Error: $errorMessage"
+        )
+        Send-TelegramBotMessage -Message ($lines -join "`n") -ChatId $chatId -TopicId $topicId
+      }
+    }
+  }
+}
+
 function Send-IssueUpdateIfNeeded {
   param(
     [Parameter(Mandatory = $true)]$WatchEntry,
@@ -140,6 +262,8 @@ $cfg = Get-PaperclipBridgeConfig
 $resolvedPollSeconds = if ($PollSeconds -gt 0) { $PollSeconds } else { [int]$cfg.watchPollSeconds }
 
 while ($true) {
+  Process-PaperclipIntakeQueue
+
   $state = Get-PaperclipBridgeState
   $dirty = $false
 
@@ -185,4 +309,3 @@ while ($true) {
 
   Start-Sleep -Seconds $resolvedPollSeconds
 }
-

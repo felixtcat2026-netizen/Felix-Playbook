@@ -47,12 +47,14 @@ The runtime now prefers and uses `tmux` on this machine because WSL + tmux + `pw
 
 - `scripts/New-AgentTask.ps1`
   Create a new PRD-driven task folder.
+- `scripts/Enqueue-PaperclipDelegatedTask.ps1`
+  Write a Telegram-safe intake request file that the watcher can turn into a real Paperclip issue without chat exec approval.
 - `scripts/New-PaperclipDelegatedTask.ps1`
   Create a Paperclip issue assigned to Paperclip Felix, register Telegram follow-up routing, and wake the agent.
 - `scripts/Get-PaperclipIssueStatus.ps1`
   Return a grounded summary for a Paperclip issue and its active run/comment state.
 - `scripts/Watch-PaperclipBridge.ps1`
-  Poll watched Paperclip issues and mirror meaningful status changes back to Telegram.
+  Process queued Telegram intake files, poll watched Paperclip issues, and mirror meaningful status changes back to Telegram.
 - `scripts/Install-PaperclipBridgeWatcherTask.ps1`
   Register a Windows Scheduled Task that keeps the Paperclip-to-Telegram watcher running on logon and every few minutes.
 - `scripts/Start-AgentTask.ps1`
@@ -154,9 +156,45 @@ When reporting ops status, treat these as separate signals rather than collapsin
 
 ## Paperclip Bridge
 
-This runtime can also bridge Telegram Felix to Paperclip Felix.
+This runtime can bridge Telegram Felix to Paperclip Felix without depending on Telegram `exec` approval.
 
-Use this when you want Telegram to stay the conversational front door, but the actual managed work should happen inside Paperclip:
+Use the intake queue when you want Telegram to stay the conversational front door, but the actual managed work should happen inside Paperclip:
+
+- pending queue: `state/paperclip-intake/pending/`
+- processed queue: `state/paperclip-intake/processed/`
+- failed queue: `state/paperclip-intake/failed/`
+
+A Telegram-safe intake file looks like this:
+
+```json
+{
+  "title": "Draft landing page copy",
+  "description": "Create a first-pass landing page draft and assign follow-on implementation work.",
+  "chatId": "-1003834402915",
+  "topicId": "83"
+}
+```
+
+Save that file into `state/paperclip-intake/pending/` with a unique name such as `telegram--1003834402915-topic-83-msg-12345.json`.
+
+The watcher will then:
+
+- create a Paperclip issue assigned to Paperclip Felix
+- wake Paperclip Felix so he can break down or delegate the work
+- register the issue for Telegram follow-up updates
+- move the intake file into `processed/` or `failed/`
+
+Manual queue helper:
+
+```powershell
+.\automation\agent-runtime\scripts\Enqueue-PaperclipDelegatedTask.ps1 `
+  -Title "Draft landing page copy" `
+  -Description "Create a first-pass landing page draft and assign follow-on implementation work." `
+  -ChatId "-1003834402915" `
+  -TopicId "83"
+```
+
+Direct local creation path when interactive approval is available:
 
 ```powershell
 .\automation\agent-runtime\scripts\New-PaperclipDelegatedTask.ps1 `
@@ -166,13 +204,7 @@ Use this when you want Telegram to stay the conversational front door, but the a
   -TopicId "83"
 ```
 
-That command:
-
-- creates a Paperclip issue assigned to Paperclip Felix
-- wakes Paperclip Felix so he can break down or delegate the work
-- registers the issue for Telegram follow-up updates
-
-To install the watcher that pushes updates back into Telegram automatically:
+To install the watcher that processes intake files and pushes updates back into Telegram automatically:
 
 ```powershell
 .\automation\agent-runtime\scripts\Install-PaperclipBridgeWatcherTask.ps1
