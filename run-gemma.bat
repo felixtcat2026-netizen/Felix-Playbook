@@ -8,6 +8,6 @@ if not exist "%OLLAMA_EXE%" (
   exit /b 1
 )
 
-"%OLLAMA_EXE%" run gemma3:1b
+"%OLLAMA_EXE%" run qwen3.5:4b
 
 endlocal

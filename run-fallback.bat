@@ -8,16 +8,16 @@ if not exist "%OLLAMA_EXE%" (
   exit /b 1
 )
 
-echo Trying cloud model first...
+echo Trying qwen3.5:397b-cloud...
 "%OLLAMA_EXE%" run qwen3.5:397b-cloud
 if %ERRORLEVEL% EQU 0 exit /b 0
 
-echo Cloud model failed. Falling back to gemma3:1b...
-"%OLLAMA_EXE%" run gemma3:1b
+echo Cloud failed. Falling back to qwen3.5:4b...
+"%OLLAMA_EXE%" run qwen3.5:4b
 if %ERRORLEVEL% EQU 0 exit /b 0
 
-echo gemma3:1b failed. Falling back to llama3.2:1b...
-"%OLLAMA_EXE%" run llama3.2:1b
+echo qwen3.5:4b failed. Falling back to qwen3.5:2b...
+"%OLLAMA_EXE%" run qwen3.5:2b
 exit /b %ERRORLEVEL%
 
 endlocal
